@@ -1,44 +1,108 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { items, ITEMS_PER_PAGE, TOTAL_PAGES, getPageItems } from '@/lib/items'
 
 const LABELS = [
   { value: 1, th: 'ไม่ตรงกับฉันเลย' },
   { value: 2, th: 'ไม่ค่อยตรงกับฉัน' },
-  { value: 3, th: 'ไม่แน่ใจ' },
+  { value: 3, th: 'เป็นกลาง' },           // was "ไม่แน่ใจ" — fixed to match IPIP neutral midpoint
   { value: 4, th: 'ค่อนข้างตรงกับฉัน' },
   { value: 5, th: 'ตรงกับฉันมาก' },
 ]
+
+const DRAFT_KEY = 'ocean_answers_draft'
+const SESSION_KEY = 'ocean_session'
 
 export default function QuizPage() {
   const router = useRouter()
   const [page, setPage] = useState(1)
   const [answers, setAnswers] = useState<Record<number, number>>({})
 
+  // Per-item first-display timestamps for response-time tracking
+  const itemShownAt = useRef<Record<number, number>>({})
+  // Per-page entry timestamps for duration tracking
+  const pageEnteredAt = useRef<number>(Date.now())
+  const pageDurations = useRef<Record<number, number>>({})
+  // Per-item response time in ms
+  const responseTimes = useRef<Record<number, number>>({})
+
+  // Restore draft answers and init session on mount
+  useEffect(() => {
+    const draft = localStorage.getItem(DRAFT_KEY)
+    if (draft) {
+      try { setAnswers(JSON.parse(draft)) } catch { /* ignore corrupt draft */ }
+    }
+
+    // Create session if not exists
+    const existing = localStorage.getItem(SESSION_KEY)
+    if (!existing) {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        sessionId: crypto.randomUUID(),
+        startedAt: new Date().toISOString(),
+      }))
+    }
+  }, [])
+
+  // Track when each item on the current page is first shown
   const pageItems = getPageItems(page)
+  useEffect(() => {
+    const now = Date.now()
+    pageEnteredAt.current = now
+    for (const item of pageItems) {
+      if (itemShownAt.current[item.id] === undefined) {
+        itemShownAt.current[item.id] = now
+      }
+    }
+  }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const answeredOnPage = pageItems.filter(item => answers[item.id] !== undefined).length
   const allAnswered = answeredOnPage === ITEMS_PER_PAGE
   const totalAnswered = Object.keys(answers).length
   const progressPct = Math.round((totalAnswered / items.length) * 100)
 
   function handleAnswer(itemId: number, value: number) {
-    setAnswers(prev => ({ ...prev, [itemId]: value }))
+    // Record response time on first answer to this item
+    if (responseTimes.current[itemId] === undefined && itemShownAt.current[itemId] !== undefined) {
+      responseTimes.current[itemId] = Date.now() - itemShownAt.current[itemId]
+    }
+    const next = { ...answers, [itemId]: value }
+    setAnswers(next)
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
   }
 
   function handleNext() {
     if (!allAnswered) return
+    // Record page duration
+    pageDurations.current[page] = Date.now() - pageEnteredAt.current
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(answers))
+
     if (page < TOTAL_PAGES) {
       setPage(p => p + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
+      // Save final answers and metadata to localStorage for results page
       localStorage.setItem('ocean_answers', JSON.stringify(answers))
+      localStorage.setItem('ocean_response_times', JSON.stringify(responseTimes.current))
+      localStorage.setItem('ocean_page_durations', JSON.stringify(pageDurations.current))
+      // Update session with completion time
+      const session = localStorage.getItem(SESSION_KEY)
+      if (session) {
+        const s = JSON.parse(session)
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+          ...s,
+          quizCompletedAt: new Date().toISOString(),
+        }))
+      }
+      localStorage.removeItem(DRAFT_KEY)
       router.push('/profile')
     }
   }
 
   function handleBack() {
+    pageDurations.current[page] = Date.now() - pageEnteredAt.current
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(answers))
     if (page > 1) {
       setPage(p => p - 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -46,7 +110,7 @@ export default function QuizPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center px-4 py-10">
+    <main id="main" className="min-h-screen flex flex-col items-center px-4 py-10">
       <div className="max-w-2xl w-full mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -58,8 +122,14 @@ export default function QuizPage() {
               {totalAnswered} / {items.length} ข้อ
             </span>
           </div>
-          {/* Progress bar */}
-          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div
+            className="h-2 bg-slate-200 rounded-full overflow-hidden"
+            role="progressbar"
+            aria-valuenow={progressPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`ความคืบหน้า ${progressPct}%`}
+          >
             <div
               className="h-full bg-indigo-500 rounded-full transition-all duration-300"
               style={{ width: `${progressPct}%` }}
@@ -80,6 +150,7 @@ export default function QuizPage() {
           {pageItems.map((item, idx) => {
             const globalIdx = (page - 1) * ITEMS_PER_PAGE + idx + 1
             const selected = answers[item.id]
+            const qId = `q-${item.id}`
 
             return (
               <div
@@ -88,23 +159,34 @@ export default function QuizPage() {
                   selected !== undefined ? 'border-indigo-200' : 'border-slate-100'
                 }`}
               >
-                <p className="font-medium text-slate-800 mb-4 leading-relaxed">
+                <p
+                  id={qId}
+                  className="font-medium text-slate-800 mb-4 leading-relaxed"
+                >
                   <span className="text-indigo-400 font-bold mr-2">{globalIdx}.</span>
                   {item.th}
                 </p>
-                <div className="flex gap-2 flex-wrap">
+
+                {/* Mobile: vertical stack; Desktop: horizontal row */}
+                <div
+                  role="radiogroup"
+                  aria-labelledby={qId}
+                  className="flex flex-col sm:flex-row gap-2"
+                >
                   {LABELS.map(label => (
                     <button
                       key={label.value}
+                      role="radio"
+                      aria-checked={selected === label.value}
                       onClick={() => handleAnswer(item.id, label.value)}
-                      className={`flex-1 min-w-[80px] py-2 px-1 rounded-xl text-xs font-medium border transition-all ${
+                      className={`flex sm:flex-col flex-row items-center sm:justify-center gap-2 sm:gap-0 flex-1 py-2 px-3 sm:px-1 rounded-xl text-xs font-medium border transition-all ${
                         selected === label.value
                           ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                           : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
                       }`}
                     >
-                      <span className="block text-center">{label.value}</span>
-                      <span className="block text-center leading-tight mt-0.5">{label.th}</span>
+                      <span className="font-bold text-sm">{label.value}</span>
+                      <span className="leading-tight sm:mt-0.5 text-center">{label.th}</span>
                     </button>
                   ))}
                 </div>

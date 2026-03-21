@@ -11,7 +11,7 @@ const dimensions = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
+    <main id="main" className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
       <div className="max-w-2xl w-full mx-auto text-center">
         {/* Header */}
         <div className="mb-8">
@@ -30,7 +30,7 @@ export default function Home() {
         </p>
 
         {/* Dimensions preview */}
-        <div className="grid grid-cols-5 gap-2 mb-10">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-10">
           {dimensions.map(({ key, emoji }) => {
             const info = DIMENSION_INFO[key]
             return (

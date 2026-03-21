@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const GOALS = [
   'รู้จักตัวเองมากขึ้น',
@@ -31,7 +32,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
+    <main id="main" className="min-h-screen flex flex-col items-center justify-center px-4 py-16">
       <div className="max-w-md w-full mx-auto">
         <div className="text-center mb-8">
           <span className="text-4xl block mb-3">📝</span>
@@ -46,10 +47,11 @@ export default function ProfilePage() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
           {/* Age */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="age" className="block text-sm font-semibold text-slate-700 mb-1.5">
               อายุ
             </label>
             <input
+              id="age"
               type="number"
               min={10}
               max={100}
@@ -62,13 +64,13 @@ export default function ProfilePage() {
 
           {/* Sex */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              เพศ
-            </label>
-            <div className="flex gap-2">
+            <p className="block text-sm font-semibold text-slate-700 mb-1.5">เพศ</p>
+            <div className="flex gap-2" role="group" aria-label="เพศ">
               {['ชาย', 'หญิง', 'ไม่ระบุ'].map(option => (
                 <button
                   key={option}
+                  type="button"
+                  aria-pressed={sex === option}
                   onClick={() => setSex(sex === option ? '' : option)}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all ${
                     sex === option
@@ -84,10 +86,11 @@ export default function ProfilePage() {
 
           {/* Occupation */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            <label htmlFor="occupation" className="block text-sm font-semibold text-slate-700 mb-1.5">
               อาชีพ
             </label>
             <input
+              id="occupation"
               type="text"
               value={occupation}
               onChange={e => setOccupation(e.target.value)}
@@ -98,13 +101,15 @@ export default function ProfilePage() {
 
           {/* Goal */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            <p className="block text-sm font-semibold text-slate-700 mb-1.5">
               วัตถุประสงค์ในการทำแบบทดสอบ
-            </label>
-            <div className="flex flex-wrap gap-2">
+            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="วัตถุประสงค์">
               {GOALS.map(option => (
                 <button
                   key={option}
+                  type="button"
+                  aria-pressed={goal === option}
                   onClick={() => setGoal(goal === option ? '' : option)}
                   className={`py-2 px-3 rounded-xl text-xs font-medium border transition-all ${
                     goal === option
@@ -125,6 +130,16 @@ export default function ProfilePage() {
         >
           ดูผลลัพธ์ →
         </button>
+
+        {/* Back to quiz */}
+        <div className="flex justify-center mt-4">
+          <Link
+            href="/quiz"
+            className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            ← ย้อนกลับแก้ไขคำตอบ
+          </Link>
+        </div>
 
         <p className="text-center text-xs text-slate-300 mt-4">
           ข้อมูลส่วนตัวจะถูกใช้เพื่อการวิเคราะห์เท่านั้น ไม่มีการจัดเก็บ

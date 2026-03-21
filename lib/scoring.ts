@@ -9,8 +9,8 @@ export interface Scores {
 }
 
 export interface ScoreResult {
-  raw: Scores       // sum of items per factor (range 10–50)
-  pct: Scores       // percentage 0–100
+  raw: Scores   // sum of items per factor (range 10–50)
+  pct: Scores   // percentage 0–100, clamped
 }
 
 export const DIMENSION_INFO: Record<Factor, { label: string; sublabel: string; color: string; description: string }> = {
@@ -46,6 +46,8 @@ export const DIMENSION_INFO: Record<Factor, { label: string; sublabel: string; c
   },
 }
 
+const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
+
 export function calcScores(answers: Record<number, number>): ScoreResult {
   const raw: Scores = { E: 0, A: 0, C: 0, N: 0, O: 0 }
 
@@ -57,11 +59,11 @@ export function calcScores(answers: Record<number, number>): ScoreResult {
   }
 
   const pct: Scores = {
-    E: Math.round((raw.E - 10) / 40 * 100),
-    A: Math.round((raw.A - 10) / 40 * 100),
-    C: Math.round((raw.C - 10) / 40 * 100),
-    N: Math.round((raw.N - 10) / 40 * 100),
-    O: Math.round((raw.O - 10) / 40 * 100),
+    E: clamp((raw.E - 10) / 40 * 100),
+    A: clamp((raw.A - 10) / 40 * 100),
+    C: clamp((raw.C - 10) / 40 * 100),
+    N: clamp((raw.N - 10) / 40 * 100),
+    O: clamp((raw.O - 10) / 40 * 100),
   }
 
   return { raw, pct }
