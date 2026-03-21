@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI, ThinkingLevel } from '@google/genai'
 
 // Simple in-memory rate limiter: max 5 requests per 10 minutes per IP
 // NOTE: On serverless (Vercel), each instance has its own Map — this is best-effort only.
@@ -75,9 +75,11 @@ export async function POST(req: NextRequest) {
     goal       ? `- วัตถุประสงค์: ${goal}` : null,
   ].filter(Boolean).join('\n')
 
-  const prompt = `คุณเป็นนักจิตวิทยาผู้เชี่ยวชาญด้านบุคลิกภาพ Big Five ที่มีความเชี่ยวชาญในการอธิบายผลเป็นภาษาไทยอย่างละเอียด อบอุ่น และสร้างแรงบันดาลใจ
+  const prompt = `You are an expert clinical psychologist specializing in Big Five / Five-Factor Model personality assessment with deep knowledge of NEO-PI-R facet-level interpretation, cross-dimensional interaction patterns, and vocational psychology research.
 
-ผลการทดสอบบุคลิกภาพ OCEAN (สูง = มีลักษณะมาก, ต่ำ = มีลักษณะน้อย):
+Write the entire report in Thai (ภาษาไทย). Use English only for psychological terminology in parentheses.
+
+ผลการทดสอบบุคลิกภาพ OCEAN จากแบบทดสอบ IPIP-NEO 50 ข้อ (คะแนนเป็น percentile — สูง = มีลักษณะมาก, ต่ำ = มีลักษณะน้อย):
 - การเปิดรับประสบการณ์ (Openness / O): ${scores.O}%
 - ความรับผิดชอบ (Conscientiousness / C): ${scores.C}%
 - ความเปิดเผย (Extraversion / E): ${scores.E}%
@@ -86,42 +88,54 @@ export async function POST(req: NextRequest) {
 
 ${profileLines ? `ข้อมูลส่วนตัว:\n${profileLines}` : 'ไม่มีข้อมูลส่วนตัวเพิ่มเติม'}
 
-กรุณาเขียนรายงานวิเคราะห์บุคลิกภาพที่ครอบคลุมและเป็นประโยชน์เป็นภาษาไทย โดยจัดโครงสร้างดังนี้:
+กรุณาเขียนรายงานวิเคราะห์บุคลิกภาพอย่างละเอียดและเป็นประโยชน์เป็นภาษาไทย โดยพิจารณาจากรูปแบบคะแนนทั้ง 5 มิติร่วมกัน${profileLines ? ' และบริบทของผู้ทดสอบ' : ''} เพื่ออนุมานลักษณะเชิงลึกในแต่ละด้าน จัดโครงสร้างดังนี้:
 
 ## ภาพรวมบุคลิกภาพ
-สรุปภาพรวมบุคลิกภาพจากคะแนนทั้ง 5 มิติ อธิบายว่าบุคคลนี้เป็นคนแบบไหนในชีวิตประจำวัน
+สรุปบุคลิกภาพจากรูปแบบคะแนนทั้ง 5 มิติรวมกัน อธิบายว่าบุคคลนี้เป็นคนแบบไหนในชีวิตประจำวัน เน้นการ **ผสมผสานระหว่างมิติ** ที่สร้างลักษณะเฉพาะตัว (เช่น O สูง + C สูง = คนสร้างสรรค์ที่มีวินัย, E ต่ำ + A สูง = คนอบอุ่นแต่ชอบอยู่เงียบๆ)
 
-## วิเคราะห์รายมิติ
-วิเคราะห์แต่ละมิติโดยละเอียด ระบุจุดแข็ง โอกาสพัฒนา และลักษณะที่โดดเด่น
+## วิเคราะห์รายมิติเชิงลึก
+วิเคราะห์แต่ละมิติอย่างละเอียด โดย **อนุมานลักษณะด้านย่อย (facets)** ที่น่าจะเด่นชัดจากระดับคะแนนและบริบท ตัวอย่าง:
+- Extraversion: ความเป็นกันเอง (Friendliness), ความชอบสังคม (Gregariousness), ความกล้าแสดงออก (Assertiveness), ระดับพลังงาน (Activity Level), การแสวงหาความตื่นเต้น (Excitement-Seeking), อารมณ์เชิงบวก (Cheerfulness)
+- Agreeableness: ความไว้วางใจ (Trust), ความจริงใจ (Morality), ความเอื้อเฟื้อ (Altruism), ความร่วมมือ (Cooperation), ความถ่อมตน (Modesty), ความเห็นอกเห็นใจ (Sympathy)
+- Conscientiousness: ความมั่นใจในตัวเอง (Self-Efficacy), ความเป็นระเบียบ (Orderliness), ความรับผิดชอบต่อหน้าที่ (Dutifulness), ความมุ่งมั่น (Achievement-Striving), วินัยในตนเอง (Self-Discipline), ความรอบคอบ (Cautiousness)
+- Neuroticism: ความวิตกกังวล (Anxiety), ความโกรธ (Anger), ภาวะซึมเศร้า (Depression), ความเก้อเขิน (Self-Consciousness), ความหุนหันพลันแล่น (Immoderation), ความเปราะบาง (Vulnerability)
+- Openness: จินตนาการ (Imagination), ความสนใจศิลปะ (Artistic Interests), อารมณ์ร่วม (Emotionality), ความชอบผจญภัย (Adventurousness), สติปัญญา (Intellect), ความเปิดกว้างต่อค่านิยม (Liberalism)
 
-## ความสัมพันธ์และการทำงานร่วมกับผู้อื่น
-อธิบายว่าบุคลิกภาพนี้ส่งผลต่อความสัมพันธ์และการทำงานร่วมกับผู้อื่นอย่างไร
+ไม่ต้องวิเคราะห์ทุก facet — เลือกเฉพาะที่เด่นชัดและสอดคล้องกับรูปแบบคะแนน ระบุจุดแข็งและโอกาสพัฒนาในแต่ละมิติ
+
+## รูปแบบความสัมพันธ์และการทำงานร่วมกับผู้อื่น
+อธิบายว่าการผสมผสานของบุคลิกภาพนี้ส่งผลต่อรูปแบบความสัมพันธ์ การสื่อสาร และการทำงานเป็นทีมอย่างไร รวมถึงบุคลิกภาพแบบไหนที่จะเข้ากันได้ดีหรือเป็นความท้าทาย
 
 ## แนวทางอาชีพและสภาพแวดล้อมที่เหมาะสม
-ระบุประเภทงานและสภาพแวดล้อมการทำงานที่เหมาะกับบุคลิกภาพนี้${occupation ? ` โดยเชื่อมโยงกับอาชีพ ${occupation} ด้วย` : ''}
+ระบุประเภทงาน สภาพแวดล้อม และวัฒนธรรมองค์กรที่เหมาะกับบุคลิกภาพนี้${occupation ? ` โดยวิเคราะห์ว่าอาชีพ "${occupation}" สอดคล้องหรือท้าทายบุคลิกภาพนี้อย่างไร` : ''} อ้างอิงงานวิจัยด้าน vocational psychology (เช่น Holland's RIASEC) ตามความเหมาะสม
+
+## จุดแข็งที่ซ่อนอยู่และจุดที่ควรระวัง
+วิเคราะห์ลักษณะที่เกิดจากการ **ปฏิสัมพันธ์ระหว่างมิติ** ที่อาจไม่เห็นจากคะแนนแต่ละมิติเดี่ยวๆ เช่น ความเสี่ยงต่อ burnout, แนวโน้มการตัดสินใจ, รูปแบบการรับมือกับความเครียด
 
 ## คำแนะนำการพัฒนาตนเอง
-ให้คำแนะนำที่เป็นรูปธรรม 4–5 ข้อ สำหรับการพัฒนาจุดอ่อนและเสริมจุดแข็ง
+ให้คำแนะนำที่เป็นรูปธรรมและนำไปปฏิบัติได้ 5–6 ข้อ${goal ? ` โดยเชื่อมโยงกับเป้าหมาย "${goal}"` : ''} สำหรับการพัฒนาจุดที่ควรระวังและเสริมจุดแข็ง แนะนำเทคนิคหรือแนวทางเฉพาะเจาะจง
 
-ใช้ภาษากระชับ เป็นกันเอง ให้กำลังใจ และอิงจากหลักจิตวิทยา ห้ามใช้ภาษาเชิงลบหรือตัดสินคุณค่าของบุคคล`
+เขียนอย่างละเอียดแต่อ่านง่าย ใช้ภาษาเป็นกันเอง ให้กำลังใจ อิงจากหลักจิตวิทยา ห้ามใช้ภาษาเชิงลบหรือตัดสินคุณค่าของบุคคล ความยาวรวมประมาณ 1,500–2,000 คำ`
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
+    const ai = new GoogleGenAI({ apiKey })
+
+    // Promise.race: guard against Gemini hanging beyond Vercel's 60s limit
+    const genPromise = ai.models.generateContent({
+      model: 'gemini-3.1-pro-preview',
+      contents: prompt,
+      config: {
+        maxOutputTokens: 8192,
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.MEDIUM,
+        },
       },
     })
-
-    // Promise.race: Gemini SDK doesn't support AbortSignal, so we race against a timeout
-    const genPromise = model.generateContent(prompt)
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Gemini timeout')), 30000)
+      setTimeout(() => reject(new Error('Gemini timeout')), 55000)
     )
     const result = await Promise.race([genPromise, timeoutPromise])
-    const text = result.response.text()
+    const text = result.text ?? ''
     return NextResponse.json({ report: text })
   } catch (err) {
     if ((err as Error).message === 'Gemini timeout') {

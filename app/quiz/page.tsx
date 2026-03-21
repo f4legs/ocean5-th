@@ -7,11 +7,11 @@ import { STORAGE_KEYS } from '@/lib/storage-keys'
 import { getItem, setItem, removeItem } from '@/lib/storage'
 
 const LABELS = [
-  { value: 1, th: 'ไม่ตรงกับฉันเลย' },
-  { value: 2, th: 'ไม่ค่อยตรงกับฉัน' },
-  { value: 3, th: 'เป็นกลาง' },           // was "ไม่แน่ใจ" — fixed to match IPIP neutral midpoint
-  { value: 4, th: 'ค่อนข้างตรงกับฉัน' },
   { value: 5, th: 'ตรงกับฉันมาก' },
+  { value: 4, th: 'ค่อนข้างตรงกับฉัน' },
+  { value: 3, th: 'เป็นกลาง' },
+  { value: 2, th: 'ไม่ค่อยตรงกับฉัน' },
+  { value: 1, th: 'ไม่ตรงกับฉันเลย' },
 ]
 
 export default function QuizPage() {
