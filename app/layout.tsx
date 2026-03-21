@@ -1,11 +1,17 @@
 import type { Metadata } from 'next'
-import { Sarabun } from 'next/font/google'
+import { Noto_Sans_Thai, Noto_Serif_Thai } from 'next/font/google'
 import './globals.css'
 
-const sarabun = Sarabun({
+const bodyFont = Noto_Sans_Thai({
   subsets: ['thai', 'latin'],
   weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-sarabun',
+  variable: '--font-body',
+})
+
+const displayFont = Noto_Serif_Thai({
+  subsets: ['thai', 'latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-display',
 })
 
 export const metadata: Metadata = {
@@ -27,16 +33,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
-    <html lang="th">
-      <body className={`${sarabun.variable} font-[family-name:var(--font-sarabun)] antialiased bg-slate-50 text-slate-800 min-h-screen`}>
-        {/* Skip-to-content for keyboard / screen-reader users */}
+    <html lang="th" className={`${bodyFont.variable} ${displayFont.variable}`}>
+      <body className="font-[family-name:var(--font-body)] antialiased text-slate-800 min-h-screen">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-white focus:text-sm focus:font-medium"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-[var(--accent-strong)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
         >
           ข้ามไปยังเนื้อหาหลัก
         </a>
