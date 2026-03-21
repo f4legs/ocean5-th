@@ -6,7 +6,7 @@ const dimensions = [
   { key: 'C', emoji: '📋' },
   { key: 'E', emoji: '🌟' },
   { key: 'A', emoji: '🤝' },
-  { key: 'N', emoji: '🧘' },
+  { key: 'N', emoji: '🌊' },
 ] as const
 
 export default function Home() {

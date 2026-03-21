@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 - ความเปิดเผย (Extraversion / E): ${scores.E}%
 - ความเป็นมิตร (Agreeableness / A): ${scores.A}%
 - ความรับผิดชอบ (Conscientiousness / C): ${scores.C}%
-- ความมั่นคงทางอารมณ์ (Emotional Stability / N): ${scores.N}%
+- ความไม่มั่นคงทางอารมณ์ (Neuroticism / N): ${scores.N}%
 - การเปิดรับประสบการณ์ (Openness / O): ${scores.O}%
 
 ${profileLines ? `ข้อมูลส่วนตัว:\n${profileLines}` : 'ไม่มีข้อมูลส่วนตัวเพิ่มเติม'}

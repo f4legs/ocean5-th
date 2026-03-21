@@ -10,7 +10,7 @@ const DIMENSION_EMOJIS: Record<string, string> = {
   E: '🌟',
   A: '🤝',
   C: '📋',
-  N: '🧘',
+  N: '🌊',
   O: '🔍',
 }
 
@@ -20,10 +20,12 @@ function pctToLabel(pct: number): string {
   return 'ต่ำ'
 }
 
-function pctToColor(pct: number): string {
-  if (pct >= 70) return 'bg-emerald-500'
-  if (pct >= 40) return 'bg-amber-400'
-  return 'bg-slate-300'
+const DIMENSION_COLORS: Record<string, string> = {
+  E: 'bg-amber-400',
+  A: 'bg-emerald-500',
+  C: 'bg-blue-500',
+  N: 'bg-violet-500',
+  O: 'bg-red-400',
 }
 
 // Simple markdown-to-HTML renderer (headings + bold + paragraphs)
@@ -134,11 +136,7 @@ export default function ResultsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        pct >= 70 ? 'bg-emerald-100 text-emerald-700' :
-                        pct >= 40 ? 'bg-amber-100 text-amber-700' :
-                        'bg-slate-100 text-slate-500'
-                      }`}>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                         {pctToLabel(pct)}
                       </span>
                       <span className="text-sm font-bold text-slate-700 w-10 text-right">{pct}%</span>
@@ -146,7 +144,7 @@ export default function ResultsPage() {
                   </div>
                   <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-700 ${pctToColor(pct)}`}
+                      className={`h-full rounded-full transition-all duration-700 ${DIMENSION_COLORS[factor]}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>

@@ -33,10 +33,10 @@ export const DIMENSION_INFO: Record<Factor, { label: string; sublabel: string; c
     description: 'วัดความมีระเบียบ ความขยัน และความมุ่งมั่น',
   },
   N: {
-    label: 'ความมั่นคงทางอารมณ์',
-    sublabel: 'Emotional Stability',
+    label: 'ความไม่มั่นคงทางอารมณ์',
+    sublabel: 'Neuroticism',
     color: '#8B5CF6',
-    description: 'วัดความสามารถในการรับมือกับความเครียดและอารมณ์',
+    description: 'วัดแนวโน้มในการตอบสนองต่อความเครียด ความวิตกกังวล และอารมณ์เชิงลบ',
   },
   O: {
     label: 'การเปิดรับประสบการณ์',
