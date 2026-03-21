@@ -13,35 +13,30 @@ export interface ScoreResult {
   pct: Scores   // percentage 0–100, clamped
 }
 
-export const DIMENSION_INFO: Record<Factor, { label: string; sublabel: string; color: string; description: string }> = {
+export const DIMENSION_INFO: Record<Factor, { label: string; sublabel: string; description: string }> = {
   E: {
     label: 'ความเปิดเผย',
     sublabel: 'Extraversion',
-    color: '#F59E0B',
     description: 'วัดความชอบเข้าสังคม ความมีชีวิตชีวา และการแสดงออก',
   },
   A: {
     label: 'ความเป็นมิตร',
     sublabel: 'Agreeableness',
-    color: '#10B981',
     description: 'วัดความใจดี ความร่วมมือ และความไว้วางใจผู้อื่น',
   },
   C: {
     label: 'ความรับผิดชอบ',
     sublabel: 'Conscientiousness',
-    color: '#3B82F6',
     description: 'วัดความมีระเบียบ ความขยัน และความมุ่งมั่น',
   },
   N: {
     label: 'ความไม่มั่นคงทางอารมณ์',
     sublabel: 'Neuroticism',
-    color: '#8B5CF6',
     description: 'วัดแนวโน้มในการตอบสนองต่อความเครียด ความวิตกกังวล และอารมณ์เชิงลบ',
   },
   O: {
     label: 'การเปิดรับประสบการณ์',
     sublabel: 'Openness',
-    color: '#EF4444',
     description: 'วัดความชอบสิ่งใหม่ จินตนาการ และความคิดสร้างสรรค์',
   },
 }
@@ -49,6 +44,11 @@ export const DIMENSION_INFO: Record<Factor, { label: string; sublabel: string; c
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
 
 export function calcScores(answers: Record<number, number>): ScoreResult {
+  const answeredCount = Object.keys(answers).length
+  if (answeredCount < items.length) {
+    console.warn(`Only ${answeredCount}/${items.length} items answered — scores may be inaccurate`)
+  }
+
   const raw: Scores = { E: 0, A: 0, C: 0, N: 0, O: 0 }
 
   for (const item of items) {

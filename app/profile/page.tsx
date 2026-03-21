@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { STORAGE_KEYS } from '@/lib/storage-keys'
+import { setItem } from '@/lib/storage'
 
 const GOALS = [
   'รู้จักตัวเองมากขึ้น',
@@ -21,13 +23,15 @@ export default function ProfilePage() {
   const [goal, setGoal] = useState('')
 
   function handleSubmit() {
+    const parsedAge = age ? parseInt(age) : null
+    const validAge = parsedAge && parsedAge >= 10 && parsedAge <= 100 ? String(parsedAge) : null
     const profile = {
-      age: age || null,
+      age: validAge,
       sex: sex || null,
       occupation: occupation || null,
       goal: goal || null,
     }
-    localStorage.setItem('ocean_profile', JSON.stringify(profile))
+    setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile))
     router.push('/results')
   }
 

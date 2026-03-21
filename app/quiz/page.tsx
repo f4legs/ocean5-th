@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { items, ITEMS_PER_PAGE, TOTAL_PAGES, getPageItems } from '@/lib/items'
+import { STORAGE_KEYS } from '@/lib/storage-keys'
+import { getItem, setItem, removeItem } from '@/lib/storage'
 
 const LABELS = [
   { value: 1, th: 'ไม่ตรงกับฉันเลย' },
@@ -11,9 +13,6 @@ const LABELS = [
   { value: 4, th: 'ค่อนข้างตรงกับฉัน' },
   { value: 5, th: 'ตรงกับฉันมาก' },
 ]
-
-const DRAFT_KEY = 'ocean_answers_draft'
-const SESSION_KEY = 'ocean_session'
 
 export default function QuizPage() {
   const router = useRouter()
@@ -30,15 +29,15 @@ export default function QuizPage() {
 
   // Restore draft answers and init session on mount
   useEffect(() => {
-    const draft = localStorage.getItem(DRAFT_KEY)
+    const draft = getItem(STORAGE_KEYS.ANSWERS_DRAFT)
     if (draft) {
       try { setAnswers(JSON.parse(draft)) } catch { /* ignore corrupt draft */ }
     }
 
     // Create session if not exists
-    const existing = localStorage.getItem(SESSION_KEY)
+    const existing = getItem(STORAGE_KEYS.SESSION)
     if (!existing) {
-      localStorage.setItem(SESSION_KEY, JSON.stringify({
+      setItem(STORAGE_KEYS.SESSION, JSON.stringify({
         sessionId: crypto.randomUUID(),
         startedAt: new Date().toISOString(),
       }))
@@ -55,7 +54,22 @@ export default function QuizPage() {
         itemShownAt.current[item.id] = now
       }
     }
-  }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Reset item timestamps when tab becomes visible again to avoid inflated response times
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') {
+        const resetTime = Date.now()
+        for (const item of getPageItems(page)) {
+          if (responseTimes.current[item.id] === undefined) {
+            itemShownAt.current[item.id] = resetTime
+          }
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally depends only on `page`; pageItems is derived from page
+  }, [page])
 
   const answeredOnPage = pageItems.filter(item => answers[item.id] !== undefined).length
   const allAnswered = answeredOnPage === ITEMS_PER_PAGE
@@ -69,40 +83,40 @@ export default function QuizPage() {
     }
     const next = { ...answers, [itemId]: value }
     setAnswers(next)
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
+    setItem(STORAGE_KEYS.ANSWERS_DRAFT, JSON.stringify(next))
   }
 
   function handleNext() {
     if (!allAnswered) return
     // Record page duration
     pageDurations.current[page] = Date.now() - pageEnteredAt.current
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(answers))
+    setItem(STORAGE_KEYS.ANSWERS_DRAFT, JSON.stringify(answers))
 
     if (page < TOTAL_PAGES) {
       setPage(p => p + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
       // Save final answers and metadata to localStorage for results page
-      localStorage.setItem('ocean_answers', JSON.stringify(answers))
-      localStorage.setItem('ocean_response_times', JSON.stringify(responseTimes.current))
-      localStorage.setItem('ocean_page_durations', JSON.stringify(pageDurations.current))
+      setItem(STORAGE_KEYS.ANSWERS, JSON.stringify(answers))
+      setItem(STORAGE_KEYS.RESPONSE_TIMES, JSON.stringify(responseTimes.current))
+      setItem(STORAGE_KEYS.PAGE_DURATIONS, JSON.stringify(pageDurations.current))
       // Update session with completion time
-      const session = localStorage.getItem(SESSION_KEY)
+      const session = getItem(STORAGE_KEYS.SESSION)
       if (session) {
         const s = JSON.parse(session)
-        localStorage.setItem(SESSION_KEY, JSON.stringify({
+        setItem(STORAGE_KEYS.SESSION, JSON.stringify({
           ...s,
           quizCompletedAt: new Date().toISOString(),
         }))
       }
-      localStorage.removeItem(DRAFT_KEY)
+      removeItem(STORAGE_KEYS.ANSWERS_DRAFT)
       router.push('/profile')
     }
   }
 
   function handleBack() {
     pageDurations.current[page] = Date.now() - pageEnteredAt.current
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(answers))
+    setItem(STORAGE_KEYS.ANSWERS_DRAFT, JSON.stringify(answers))
     if (page > 1) {
       setPage(p => p - 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })

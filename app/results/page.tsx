@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { calcScores, DIMENSION_INFO, ScoreResult } from '@/lib/scoring'
+import { STORAGE_KEYS } from '@/lib/storage-keys'
+import { getItem, removeItem } from '@/lib/storage'
 
 const FACTOR_ORDER = ['O', 'C', 'E', 'A', 'N'] as const
 
@@ -147,13 +149,13 @@ export default function ResultsPage() {
 
   useEffect(() => {
     try {
-      const rawAnswers = localStorage.getItem('ocean_answers')
+      const rawAnswers = getItem(STORAGE_KEYS.ANSWERS)
       if (!rawAnswers) { router.push('/'); return }
 
-      const rawProfile = localStorage.getItem('ocean_profile')
-      const rawSession = localStorage.getItem('ocean_session')
-      const rawPageDur = localStorage.getItem('ocean_page_durations')
-      const rawRT = localStorage.getItem('ocean_response_times')
+      const rawProfile = getItem(STORAGE_KEYS.PROFILE)
+      const rawSession = getItem(STORAGE_KEYS.SESSION)
+      const rawPageDur = getItem(STORAGE_KEYS.PAGE_DURATIONS)
+      const rawRT = getItem(STORAGE_KEYS.RESPONSE_TIMES)
 
       const parsedAnswers = JSON.parse(rawAnswers) as Record<number, number>
       const profileData = rawProfile ? JSON.parse(rawProfile) : {}
@@ -176,12 +178,12 @@ export default function ResultsPage() {
   }, [router, fetchReport])
 
   function handleRestart() {
-    localStorage.removeItem('ocean_answers')
-    localStorage.removeItem('ocean_profile')
-    localStorage.removeItem('ocean_session')
-    localStorage.removeItem('ocean_response_times')
-    localStorage.removeItem('ocean_page_durations')
-    localStorage.removeItem('ocean_answers_draft')
+    removeItem(STORAGE_KEYS.ANSWERS)
+    removeItem(STORAGE_KEYS.PROFILE)
+    removeItem(STORAGE_KEYS.SESSION)
+    removeItem(STORAGE_KEYS.RESPONSE_TIMES)
+    removeItem(STORAGE_KEYS.PAGE_DURATIONS)
+    removeItem(STORAGE_KEYS.ANSWERS_DRAFT)
     router.push('/')
   }
 
@@ -292,8 +294,17 @@ export default function ResultsPage() {
           )}
 
           {!loading && !error && report && (
-            <div className="prose prose-sm prose-slate max-w-none text-slate-700 leading-relaxed">
-              <ReactMarkdown>{report}</ReactMarkdown>
+            <div className="max-w-none text-slate-700 leading-relaxed">
+              <ReactMarkdown components={{
+                h2: ({ children }) => <h2 className="text-lg font-bold text-slate-800 mt-6 mb-2">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-base font-semibold text-slate-700 mt-4 mb-1.5">{children}</h3>,
+                p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>,
+                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                strong: ({ children }) => <strong className="font-semibold text-slate-800">{children}</strong>,
+                em: ({ children }) => <em className="italic">{children}</em>,
+              }}>{report}</ReactMarkdown>
             </div>
           )}
         </div>

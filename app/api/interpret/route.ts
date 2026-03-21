@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Simple in-memory rate limiter: max 5 requests per 10 minutes per IP
+// NOTE: On serverless (Vercel), each instance has its own Map — this is best-effort only.
+// For production-grade rate limiting, use Upstash or Vercel's built-in rate limits.
 const rateMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 5
 const RATE_WINDOW_MS = 10 * 60 * 1000
@@ -31,7 +33,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Rate limiting by IP
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  // Prefer x-real-ip (set by Vercel, not spoofable) over x-forwarded-for
+  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
   if (isRateLimited(ip)) {
     return NextResponse.json(
       { error: 'คุณส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่' },
@@ -102,10 +105,6 @@ ${profileLines ? `ข้อมูลส่วนตัว:\n${profileLines}` : '
 
 ใช้ภาษากระชับ เป็นกันเอง ให้กำลังใจ และอิงจากหลักจิตวิทยา ห้ามใช้ภาษาเชิงลบหรือตัดสินคุณค่าของบุคคล`
 
-  // Abort if Gemini hangs beyond 30 seconds
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30000)
-
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({
@@ -116,13 +115,16 @@ ${profileLines ? `ข้อมูลส่วนตัว:\n${profileLines}` : '
       },
     })
 
-    const result = await model.generateContent(prompt)
-    clearTimeout(timeout)
+    // Promise.race: Gemini SDK doesn't support AbortSignal, so we race against a timeout
+    const genPromise = model.generateContent(prompt)
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini timeout')), 30000)
+    )
+    const result = await Promise.race([genPromise, timeoutPromise])
     const text = result.response.text()
     return NextResponse.json({ report: text })
   } catch (err) {
-    clearTimeout(timeout)
-    if ((err as Error).name === 'AbortError') {
+    if ((err as Error).message === 'Gemini timeout') {
       return NextResponse.json({ error: 'Request timeout — กรุณาลองใหม่อีกครั้ง' }, { status: 504 })
     }
     console.error('Gemini API error:', err)
