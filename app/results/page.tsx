@@ -11,29 +11,29 @@ const FACTOR_ORDER = ['O', 'C', 'E', 'A', 'N'] as const
 
 const DIMENSION_STYLES: Record<string, { bar: string; chip: string; wash: string }> = {
   O: {
-    bar: 'bg-[linear-gradient(90deg,#7b6852,#c6ad90)]',
-    chip: 'bg-[#f3ede4] text-[#6a5844]',
-    wash: 'from-[#faf6ef] to-[#f4ede4]',
+    bar: 'bg-[linear-gradient(90deg,#516673,#8ea0aa)]',
+    chip: 'bg-[#eef3f5] text-[#47606d]',
+    wash: 'from-[#f8fafb] to-[#f2f5f7]',
   },
   C: {
-    bar: 'bg-[linear-gradient(90deg,#445f78,#95acc0)]',
-    chip: 'bg-[#eaf0f6] text-[#425d76]',
-    wash: 'from-[#eff5fa] to-[#e7eef5]',
+    bar: 'bg-[linear-gradient(90deg,#485f6d,#8a9da8)]',
+    chip: 'bg-[#eef3f5] text-[#48606e]',
+    wash: 'from-[#f8fafb] to-[#f2f5f7]',
   },
   E: {
-    bar: 'bg-[linear-gradient(90deg,#496775,#92aab5)]',
-    chip: 'bg-[#ebf2f5] text-[#456270]',
-    wash: 'from-[#eff5f7] to-[#e7eef1]',
+    bar: 'bg-[linear-gradient(90deg,#49606d,#8d9fa9)]',
+    chip: 'bg-[#eef3f5] text-[#4a6270]',
+    wash: 'from-[#f8fafb] to-[#f2f5f7]',
   },
   A: {
-    bar: 'bg-[linear-gradient(90deg,#5c7466,#9cb2a1)]',
-    chip: 'bg-[#edf3ee] text-[#536b5d]',
-    wash: 'from-[#f1f6f2] to-[#e8efea]',
+    bar: 'bg-[linear-gradient(90deg,#50656a,#90a2a7)]',
+    chip: 'bg-[#eef3f5] text-[#50686d]',
+    wash: 'from-[#f8fafb] to-[#f2f5f7]',
   },
   N: {
-    bar: 'bg-[linear-gradient(90deg,#755f72,#b9a4b5)]',
-    chip: 'bg-[#f3edf2] text-[#6b5766]',
-    wash: 'from-[#f8f3f7] to-[#efe7ee]',
+    bar: 'bg-[linear-gradient(90deg,#566570,#95a3ac)]',
+    chip: 'bg-[#eef3f5] text-[#51656f]',
+    wash: 'from-[#f8fafb] to-[#f2f5f7]',
   },
 }
 
@@ -253,7 +253,7 @@ export default function ResultsPage() {
       <main className="page-shell flex items-center justify-center">
         <div className="page-wrap max-w-xl">
           <div className="section-panel rounded-[1.75rem] px-6 py-10 text-center">
-            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-300 border-t-[var(--accent-strong)]" />
+            <div className="loading-line soft" aria-hidden="true" />
             <p className="mt-4 text-base font-medium text-slate-700">กำลังเตรียมรายงานผลลัพธ์</p>
             <p className="body-faint mt-2 text-sm">กรุณารอสักครู่</p>
           </div>
@@ -286,16 +286,16 @@ export default function ResultsPage() {
             <div>
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
-                Personality Report
+                รายงานผล
               </span>
 
               <h1 className="display-title mt-6 text-4xl sm:text-5xl">
-                รายงานบุคลิกภาพ OCEAN ของคุณ
+                รายงานผลการประเมินบุคลิกภาพ
               </h1>
 
               <p className="body-soft mt-4 max-w-2xl text-base leading-8">
                 ผลลัพธ์นี้สะท้อนแนวโน้มบุคลิกภาพจากคำตอบทั้ง 50 ข้อ
-                ช่วยให้มองเห็นรูปแบบการคิด การทำงาน การเข้าสังคม และการรับมือกับอารมณ์ของคุณชัดเจนขึ้น
+                เพื่อช่วยให้เห็นรูปแบบการคิด การทำงาน และการรับมือกับอารมณ์ได้ชัดขึ้น
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
@@ -313,7 +313,7 @@ export default function ResultsPage() {
 
             <div className="section-panel rounded-[1.75rem] p-5 sm:p-6 print-avoid-break">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                Snapshot
+                สรุปเด่น
               </p>
               <div className="snapshot-list mt-4 grid gap-3">
                 {rankedFactors.slice(0, 3).map(factor => {
@@ -351,14 +351,14 @@ export default function ResultsPage() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                    Dimension Scores
+                    คะแนนรายมิติ
                   </p>
                   <h2 className="section-title mt-2 text-2xl">
-                    โปรไฟล์คะแนนแต่ละมิติ
+                    คะแนนรายมิติ
                   </h2>
                 </div>
                 <p className="body-faint text-sm">
-                  ยิ่งเปอร์เซ็นต์สูง ยิ่งสะท้อนแนวโน้มของมิตินั้นมากขึ้น
+                  ใช้อ่านแนวโน้มของแต่ละมิติเทียบกัน
                 </p>
               </div>
 
@@ -420,10 +420,10 @@ export default function ResultsPage() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                    AI Interpretation
+                    รายงานสรุป
                   </p>
                   <h2 className="section-title mt-2 text-2xl">
-                    รายงานวิเคราะห์บุคลิกภาพ
+                    รายงานสรุปผลการประเมิน
                   </h2>
                 </div>
                 {!loading && !error && report ? (
@@ -435,19 +435,12 @@ export default function ResultsPage() {
 
               {loading && (
                 <div className="py-10 text-center sm:px-8">
-                  <div
-                    className="loading-orbit"
-                    role="status"
-                    aria-label="กำลังโหลด"
-                  >
-                    <span className="loading-orbit-track" aria-hidden="true" />
-                  </div>
+                  <div className="loading-line" role="status" aria-label="กำลังโหลด" />
                   <p className="mt-4 text-base font-medium text-slate-700">
                     {loadingMessage}
                   </p>
                   <p className="body-faint mt-2 text-sm leading-7">
-                    รายงานฉบับละเอียดอาจใช้เวลาประมาณ 2-3 นาที
-                    ระหว่างนี้เราจะแสดงความคืบหน้าโดยประมาณให้คุณเห็น
+                    รายงานอาจใช้เวลาประมาณ 2-3 นาที
                   </p>
                   <div className="mx-auto mt-6 max-w-xl">
                     <div className="flex items-center justify-between gap-3 text-sm">
@@ -462,7 +455,7 @@ export default function ResultsPage() {
                     </div>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
                       <span>เวลาที่ผ่านไป {formatDuration(loadingSeconds)}</span>
-                      <span>บางช่วงอาจค้างที่ 90%+ จนกว่ารายงานจะเสร็จสมบูรณ์</span>
+                      <span>บางช่วงอาจค้างที่ 90%+ ชั่วคราว</span>
                     </div>
                   </div>
                 </div>
@@ -491,7 +484,7 @@ export default function ResultsPage() {
           <aside className="results-side space-y-6">
             <div className="muted-panel print-avoid-break rounded-[1.75rem] p-5 sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                Raw Scores
+                คะแนนดิบ
               </p>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {FACTOR_ORDER.map(factor => (
@@ -506,7 +499,7 @@ export default function ResultsPage() {
 
             <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                Actions
+                การใช้งาน
               </p>
               <div className="mt-4 space-y-3 no-print">
                 <button

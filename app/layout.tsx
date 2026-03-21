@@ -16,8 +16,8 @@ const displayFont = Noto_Serif_Thai({
 
 export const metadata: Metadata = {
   icons: { icon: '/favicon.svg' },
-  title: 'แบบทดสอบบุคลิกภาพ 5 มิติ (OCEAN)',
-  description: 'ค้นพบบุคลิกภาพของคุณด้วยแบบทดสอบ Big Five ฉบับภาษาไทย พร้อมวิเคราะห์โดย AI',
+  title: 'แบบประเมินบุคลิกภาพ 5 มิติ (OCEAN)',
+  description: 'ระบบประเมินบุคลิกภาพ Big Five สำหรับการใช้งานภายในองค์กร พร้อมรายงานสรุปภาษาไทย',
   robots: {
     index: false,
     follow: false,
@@ -34,15 +34,15 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'แบบทดสอบบุคลิกภาพ 5 มิติ (OCEAN)',
-    description: 'ค้นพบบุคลิกภาพของคุณด้วยแบบทดสอบ Big Five มาตรฐานสากล 50 ข้อ พร้อมวิเคราะห์เชิงลึกโดย AI ในภาษาไทย',
+    title: 'แบบประเมินบุคลิกภาพ 5 มิติ (OCEAN)',
+    description: 'ระบบประเมินบุคลิกภาพ Big Five สำหรับการใช้งานภายในองค์กร พร้อมรายงานสรุปภาษาไทย',
     type: 'website',
     locale: 'th_TH',
   },
   twitter: {
     card: 'summary',
-    title: 'แบบทดสอบบุคลิกภาพ 5 มิติ (OCEAN)',
-    description: 'ค้นพบบุคลิกภาพของคุณด้วยแบบทดสอบ Big Five มาตรฐานสากล ภาษาไทย',
+    title: 'แบบประเมินบุคลิกภาพ 5 มิติ (OCEAN)',
+    description: 'ระบบประเมินบุคลิกภาพ Big Five สำหรับการใช้งานภายในองค์กร',
   },
 }
 

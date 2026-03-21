@@ -37,38 +37,29 @@ export default function ProfilePage() {
   }
 
   return (
-    <main id="main" className="page-shell flex items-center">
+    <main id="main" className="page-shell">
       <div className="page-wrap">
         <section className="glass-panel rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,0.86fr)_minmax(320px,0.62fr)] lg:items-start">
             <div>
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
-                Optional Context
+                ข้อมูลเพิ่มเติม
               </span>
 
               <h1 className="display-title mt-6 text-4xl sm:text-5xl">
-                เติมบริบทเล็กน้อย เพื่อให้รายงานอ่านเป็นคุณมากขึ้น
+                ข้อมูลประกอบการสรุปผล
               </h1>
 
               <p className="body-soft mt-4 max-w-2xl text-base leading-8">
-                ข้อมูลส่วนนี้ไม่บังคับ แต่ช่วยให้การอธิบายผลลัพธ์มีบริบทมากขึ้น เช่น
-                ช่วงวัย งานที่ทำ หรือเหตุผลที่คุณสนใจแบบทดสอบครั้งนี้
+                กรอกเท่าที่สะดวก เพื่อช่วยให้รายงานอ่านได้ตรงบริบทมากขึ้น
               </p>
 
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                <div className="section-panel rounded-[1.5rem] px-5 py-5">
-                  <p className="text-sm font-semibold text-slate-800">ใช้เพื่อการตีความเท่านั้น</p>
-                  <p className="body-soft mt-2 text-sm leading-7">
-                    ระบบจะใช้ข้อมูลเพื่อช่วยสรุปผลให้เหมาะกับบริบทส่วนตัวของคุณมากขึ้น
-                  </p>
-                </div>
-                <div className="section-panel rounded-[1.5rem] px-5 py-5">
-                  <p className="text-sm font-semibold text-slate-800">ข้ามได้ทุกข้อ</p>
-                  <p className="body-soft mt-2 text-sm leading-7">
-                    หากไม่ต้องการระบุรายละเอียดบางอย่าง คุณสามารถปล่อยว่างไว้ได้ทั้งหมด
-                  </p>
-                </div>
+              <div className="mt-8 section-panel rounded-[1.5rem] px-5 py-5">
+                <p className="text-sm font-semibold text-slate-800">ไม่บังคับทุกข้อ</p>
+                <p className="body-soft mt-2 text-sm leading-7">
+                  หากไม่ต้องการระบุรายละเอียดบางอย่าง สามารถปล่อยว่างไว้ได้
+                </p>
               </div>
 
               <div className="mt-8 section-panel rounded-[1.75rem] p-5 sm:p-6">
@@ -147,23 +138,22 @@ export default function ProfilePage() {
             <aside className="space-y-4">
               <div className="section-panel rounded-[1.75rem] px-5 py-6 sm:px-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                  Before Results
+                  ก่อนดูผล
                 </p>
                 <h2 className="section-title mt-3 text-2xl">
-                  ขั้นตอนสุดท้ายก่อนดูรายงาน
+                  ขั้นตอนสุดท้ายก่อนดูผลการประเมิน
                 </h2>
                 <p className="body-soft mt-3 text-sm leading-7">
-                  เมื่อกดดูผลลัพธ์ ระบบจะนำคะแนนแบบทดสอบและข้อมูลเพิ่มเติมที่คุณเลือกกรอก
-                  ไปสร้างคำอธิบายบุคลิกภาพแบบอ่านง่ายในภาษาไทย
+                  คะแนนและข้อมูลที่คุณกรอกจะถูกใช้เพื่อจัดทำรายงานสรุปภาษาไทย
                 </p>
               </div>
 
               <div className="muted-panel rounded-[1.75rem] px-5 py-6 sm:px-6">
                 <p className="text-sm font-semibold text-slate-800">หลักการความเป็นส่วนตัว</p>
                 <ul className="mt-3 space-y-3 text-sm leading-7 text-slate-600">
-                  <li>ข้อมูลส่วนตัวใช้เพื่อการวิเคราะห์เท่านั้น</li>
+                  <li>ข้อมูลใช้เพื่อการสรุปผลเท่านั้น</li>
                   <li>ไม่มีการบังคับกรอกข้อมูลใด ๆ</li>
-                  <li>คุณสามารถย้อนกลับไปแก้คำตอบแบบทดสอบได้ก่อนดูผล</li>
+                  <li>ย้อนกลับไปแก้คำตอบได้ก่อนดูผล</li>
                 </ul>
               </div>
 
@@ -183,7 +173,7 @@ export default function ProfilePage() {
               </div>
 
               <p className="body-faint px-2 text-center text-xs leading-6">
-                ข้อมูลทั้งหมดถูกเก็บไว้เฉพาะในอุปกรณ์ของคุณเพื่อประสบการณ์การประเมินที่เป็นส่วนตัวมากขึ้น
+                ข้อมูลทั้งหมดถูกเก็บไว้เฉพาะในอุปกรณ์ของคุณ
               </p>
             </aside>
           </div>

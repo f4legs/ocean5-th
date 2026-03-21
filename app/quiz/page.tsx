@@ -7,11 +7,11 @@ import { STORAGE_KEYS } from '@/lib/storage-keys'
 import { getItem, setItem } from '@/lib/storage'
 
 const LABELS = [
-  { value: 5, th: 'ตรงกับฉันมาก' },
-  { value: 4, th: 'ค่อนข้างตรงกับฉัน' },
+  { value: 5, th: 'ตรงมาก' },
+  { value: 4, th: 'ค่อนข้างตรง' },
   { value: 3, th: 'เป็นกลาง' },
-  { value: 2, th: 'ไม่ค่อยตรงกับฉัน' },
-  { value: 1, th: 'ไม่ตรงกับฉันเลย' },
+  { value: 2, th: 'ไม่ค่อยตรง' },
+  { value: 1, th: 'ไม่ตรงเลย' },
 ]
 
 export default function QuizPage() {
@@ -154,26 +154,25 @@ export default function QuizPage() {
             <section className="glass-panel rounded-[2rem] px-5 py-6 sm:px-6">
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
-                Assessment Flow
+                การประเมิน
               </span>
 
               <h1 className="section-title mt-5 text-3xl">
-                ประเมินบุคลิกภาพอย่างเป็นจังหวะ
+                แบบประเมินบุคลิกภาพ
               </h1>
               <p className="body-soft mt-3 text-sm leading-7">
-                อ่านข้อความแต่ละข้อ แล้วเลือกคำตอบที่ตรงกับตัวคุณมากที่สุด
-                ใช้ความรู้สึกแรกของตัวเองเป็นหลักเพื่อให้ผลลัพธ์สะท้อนธรรมชาติจริงมากขึ้น
+                อ่านแต่ละข้อ แล้วเลือกคำตอบที่ตรงกับตัวคุณมากที่สุด
               </p>
 
               <div className="mt-6 space-y-3">
                 <div className="section-panel rounded-[1.5rem] px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                    Progress
+                    ความคืบหน้า
                   </p>
                   <div className="mt-3 flex items-end justify-between gap-3">
                     <div>
                       <p className="text-3xl font-semibold text-slate-900">{progressPct}%</p>
-                      <p className="body-faint mt-1 text-sm">ตอบแล้ว {totalAnswered} จาก {items.length} ข้อ</p>
+                      <p className="body-faint mt-1 text-sm">{totalAnswered} / {items.length} ข้อ</p>
                     </div>
                     <div className="factor-medallion factor-medallion-number"><span>{page}</span></div>
                   </div>
@@ -194,22 +193,22 @@ export default function QuizPage() {
 
                 <div className="muted-panel rounded-[1.5rem] px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold text-slate-800">หน้าปัจจุบัน</span>
+                    <span className="text-sm font-semibold text-slate-800">หน้านี้</span>
                     <span className="text-sm text-slate-500">{page} / {TOTAL_PAGES}</span>
                   </div>
                   <p className="body-soft mt-2 text-sm leading-7">
-                    หน้านี้ตอบแล้ว {answeredOnPage} จาก {ITEMS_PER_PAGE} ข้อ
-                    {remaining > 0 ? ` และเหลืออีก ${remaining} ข้อในแบบทดสอบทั้งหมด` : ''}
+                    ตอบแล้ว {answeredOnPage} จาก {ITEMS_PER_PAGE} ข้อ
+                    {remaining > 0 ? ` · เหลือทั้งหมด ${remaining} ข้อ` : ''}
                   </p>
                 </div>
 
                 <div className="muted-panel rounded-[1.5rem] px-4 py-4">
-                  <p className="text-sm font-semibold text-slate-800">ระดับคำตอบ</p>
+                  <p className="text-sm font-semibold text-slate-800">สเกลคำตอบ</p>
                   <div className="mt-3 grid grid-cols-5 gap-2 text-center">
                     {LABELS.map(label => (
                       <div key={label.value} className="rounded-2xl bg-white/80 px-2 py-3">
                         <div className="text-base font-semibold text-slate-800">{label.value}</div>
-                        <div className="mt-1 text-[11px] leading-4 text-slate-500">{label.th}</div>
+                        <div className="mt-1 text-xs leading-4 text-slate-500">{label.th}</div>
                       </div>
                     ))}
                   </div>
@@ -222,11 +221,11 @@ export default function QuizPage() {
             {page === 1 && (
               <div className="section-panel rounded-[1.75rem] px-5 py-5 sm:px-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                  Instructions
+                  คำแนะนำ
                 </p>
                 <p className="mt-3 text-sm leading-8 text-slate-600">
                   ไม่มีคำตอบที่ถูกหรือผิด กรุณาตอบตามความเป็นจริงของคุณในชีวิตประจำวัน
-                  ไม่ต้องพยายามเลือกคำตอบที่ “ดูดี” ที่สุด เพราะคุณภาพของผลลัพธ์ขึ้นอยู่กับความตรงไปตรงมาในการตอบ
+                  ใช้ความรู้สึกแรกของคุณได้เลย
                 </p>
               </div>
             )}
@@ -244,28 +243,17 @@ export default function QuizPage() {
                       selected !== undefined ? 'ring-1 ring-[rgba(84,114,127,0.18)]' : ''
                     }`}
                   >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="max-w-3xl">
-                        <div className="flex items-center gap-3">
-                          <div className="factor-medallion factor-medallion-number h-10 w-10 font-[family-name:var(--font-body)] text-sm leading-none">
-                            <span>{globalIdx}</span>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                              Question
-                            </p>
-                            <p
-                              id={qId}
-                              className="mt-1 text-base font-medium leading-8 text-slate-800 sm:text-lg"
-                            >
-                              {item.th}
-                            </p>
-                          </div>
-                        </div>
+                    <div className="flex items-start gap-4">
+                      <div className="factor-medallion factor-medallion-number h-10 w-10 shrink-0 font-[family-name:var(--font-body)] text-sm leading-none">
+                        <span>{globalIdx}</span>
                       </div>
-
-                      <div className="rounded-full bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--accent-strong)]">
-                        เลือก 1 ตัวเลือก
+                      <div className="max-w-3xl">
+                        <p
+                          id={qId}
+                          className="pt-1 text-base font-medium leading-8 text-slate-800 sm:text-lg"
+                        >
+                          {item.th}
+                        </p>
                       </div>
                     </div>
 
@@ -285,7 +273,7 @@ export default function QuizPage() {
                           }`}
                         >
                           <span className="text-lg font-semibold sm:text-xl">{label.value}</span>
-                          <span className="text-sm leading-6 sm:text-xs sm:leading-5">{label.th}</span>
+                          <span className="scale-label text-sm leading-6 sm:text-xs sm:leading-5">{label.th}</span>
                         </button>
                       ))}
                     </div>
@@ -299,11 +287,11 @@ export default function QuizPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-800">
                     {allAnswered
-                      ? 'หน้านี้ตอบครบแล้ว สามารถไปต่อได้'
-                      : `กรุณาตอบให้ครบทุกข้อในหน้านี้ (${answeredOnPage}/${ITEMS_PER_PAGE})`}
+                      ? 'ตอบครบแล้ว ไปหน้าถัดไปได้'
+                      : `กรุณาตอบให้ครบ (${answeredOnPage}/${ITEMS_PER_PAGE})`}
                   </p>
                   <p className="body-faint mt-1 text-sm">
-                    ระบบจะบันทึกคำตอบแบบร่างให้โดยอัตโนมัติในอุปกรณ์ของคุณ
+                    ระบบบันทึกคำตอบแบบร่างให้อัตโนมัติ
                   </p>
                 </div>
 
