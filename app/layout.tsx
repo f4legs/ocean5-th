@@ -18,6 +18,21 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.svg' },
   title: 'แบบทดสอบบุคลิกภาพ 5 มิติ (OCEAN)',
   description: 'ค้นพบบุคลิกภาพของคุณด้วยแบบทดสอบ Big Five ฉบับภาษาไทย พร้อมวิเคราะห์โดย AI',
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    noarchive: true,
+    nosnippet: true,
+    noimageindex: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noarchive: true,
+      nosnippet: true,
+      noimageindex: true,
+    },
+  },
   openGraph: {
     title: 'แบบทดสอบบุคลิกภาพ 5 มิติ (OCEAN)',
     description: 'ค้นพบบุคลิกภาพของคุณด้วยแบบทดสอบ Big Five มาตรฐานสากล 50 ข้อ พร้อมวิเคราะห์เชิงลึกโดย AI ในภาษาไทย',
