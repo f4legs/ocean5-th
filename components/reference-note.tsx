@@ -26,36 +26,43 @@ export default function ReferenceNote({
   }
 
   return (
-    <section className={`section-panel rounded-[1.5rem] px-5 py-5 ${className}`.trim()}>
-      <p className="text-sm font-semibold text-slate-800">ที่มาและสิทธิการใช้งาน</p>
+    <section className={`px-2 pt-6 sm:px-3 ${className}`.trim()}>
+      <div className="border-t border-[rgba(95,116,130,0.14)] pt-5 sm:grid sm:grid-cols-[minmax(0,12rem)_1fr] sm:gap-8 sm:pt-6">
+        <div>
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Reference
+          </p>
+          <p className="mt-2 text-sm font-medium text-slate-500">ที่มาและสิทธิการใช้งาน</p>
+        </div>
 
-      <p className="body-soft mt-3 text-sm leading-[1.7]">
-        แบบประเมินนี้พัฒนาต่อยอดจาก International Personality Item Pool (IPIP) และอ้างอิงรายการคำถาม
-        IPIP NEO Domains ฉบับภาษาไทยของ Panida Yomaboot และ Andrew J. Cooper ที่เผยแพร่ผ่าน{' '}
-        <a
-          href="https://ipip.ori.org/Thai50-itemNEO-PI-R-Domains.htm"
-          target="_blank"
-          rel="noreferrer"
-          className="font-medium text-[var(--accent-strong)] underline underline-offset-4"
-        >
-          ipip.ori.org
-        </a>
-        .
-      </p>
+        <div className="mt-4 space-y-3 sm:mt-0">
+          <p className="body-faint text-sm leading-[1.8]">
+            แบบประเมินนี้พัฒนาต่อยอดจาก International Personality Item Pool (IPIP) และอ้างอิงรายการคำถาม
+            IPIP NEO Domains ฉบับภาษาไทยของ Panida Yomaboot และ Andrew J. Cooper ที่เผยแพร่ผ่าน{' '}
+            <a
+              href="https://ipip.ori.org/Thai50-itemNEO-PI-R-Domains.htm"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-[var(--text-soft)] underline decoration-[rgba(95,116,130,0.36)] underline-offset-3"
+            >
+              ipip.ori.org
+            </a>
+            .
+          </p>
 
-      <p className="body-soft mt-3 text-sm leading-[1.7]">
-        ตามคำอธิบายของเว็บไซต์ IPIP รายการคำถามและสเกลของ IPIP อยู่ใน public domain จึงไม่อยู่ภายใต้ลิขสิทธิ์ของ fars-ai และสามารถอ้างอิง ใช้ ดัดแปลง หรือแปลต่อได้ตามเงื่อนไขของแหล่งต้นทาง
-      </p>
+          <p className="body-faint text-sm leading-[1.8]">
+            ตามคำอธิบายของเว็บไซต์ IPIP รายการคำถามและสเกลของ IPIP อยู่ใน public domain จึงสามารถอ้างอิง
+            ใช้ ดัดแปลง หรือแปลต่อได้ตามเงื่อนไขของแหล่งต้นทาง ส่วนซอฟต์แวร์ งานออกแบบการใช้งาน
+            ข้อความอธิบาย การจัดวางผลลัพธ์ และองค์ประกอบรายงานที่ไม่ใช่เนื้อหา IPIP ต้นฉบับ เป็นผลงานของ
+            FARS-AI Cognitive Science Team © 2026 fars-ai ในส่วนที่กฎหมายคุ้มครองได้
+          </p>
 
-      <p className="body-soft mt-3 text-sm leading-[1.7]">
-        ลิขสิทธิ์ของแอปนี้สงวนสิทธิ์เฉพาะส่วนที่ FARS-AI Cognitive Science Team สร้างขึ้นเอง เช่น ซอฟต์แวร์
-        งานออกแบบการใช้งาน ข้อความอธิบาย การจัดวางผลลัพธ์ และองค์ประกอบรายงานที่ไม่ใช่เนื้อหา IPIP ต้นฉบับ
-        © 2026 fars-ai. สงวนสิทธิ์เฉพาะในส่วนที่กฎหมายคุ้มครองได้
-      </p>
-
-      <p className="body-faint mt-3 text-xs leading-[1.6]">
-        หมายเหตุ: เวอร์ชันในแอปนี้เป็น implementation ของ fars-ai และมีการปรับข้อความบางข้อเพื่อให้เหมาะกับบริบทการใช้งาน จึงไม่ใช่หน้าเว็บทางการของ IPIP หรือ Oregon Research Institute
-      </p>
+          <p className="text-xs leading-[1.75] text-slate-400">
+            หมายเหตุ: เวอร์ชันในแอปนี้เป็น implementation ของ fars-ai และมีการปรับข้อความบางข้อเพื่อให้เหมาะกับบริบทการใช้งาน
+            จึงไม่ใช่หน้าเว็บทางการของ IPIP หรือ Oregon Research Institute
+          </p>
+        </div>
+      </div>
     </section>
   )
 }
