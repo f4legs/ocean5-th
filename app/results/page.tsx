@@ -55,7 +55,7 @@ interface ExportData {
   sessionId: string
   startedAt: string
   completedAt: string
-  profile: Record<string, string | null>
+  profile: ExportProfile
   scores: {
     raw: Record<string, number>
     pct: Record<string, number>
@@ -79,6 +79,13 @@ interface ProfileData {
   sex?: string | null
   occupation?: string | null
   goal?: string | null
+}
+
+interface ExportProfile {
+  age: string | null
+  sex: string | null
+  occupation: string | null
+  goal: string | null
 }
 
 interface SessionData {
@@ -110,6 +117,15 @@ function buildReportSignature(scoresPct: ScoreResult['pct'], profileData: Profil
       goal: profileData.goal ?? null,
     },
   })
+}
+
+function normalizeProfile(profileData: ProfileData): ExportProfile {
+  return {
+    age: profileData.age ?? null,
+    sex: profileData.sex ?? null,
+    occupation: profileData.occupation ?? null,
+    goal: profileData.goal ?? null,
+  }
 }
 
 function readCachedReport(sessionId: string, signature: string): string | null {
@@ -162,7 +178,7 @@ function buildExport(
     sessionId: session.sessionId,
     startedAt: session.startedAt,
     completedAt,
-    profile,
+    profile: normalizeProfile(profile),
     scores: {
       raw: { ...scores.raw },
       pct: { ...scores.pct },
