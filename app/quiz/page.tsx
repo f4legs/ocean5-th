@@ -154,13 +154,13 @@ export default function QuizPage() {
             <section className="glass-panel rounded-[2rem] px-5 py-6 sm:px-6">
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
-                การประเมิน
+                assessment // B5
               </span>
 
               <h1 className="section-title mt-5 text-3xl">
                 แบบประเมินบุคลิกภาพ
               </h1>
-              <p className="body-soft mt-3 text-sm leading-7">
+              <p className="body-soft mt-3 text-sm leading-[1.6]">
                 อ่านแต่ละข้อ แล้วเลือกคำตอบที่ตรงกับตัวคุณมากที่สุด
               </p>
 
@@ -196,19 +196,18 @@ export default function QuizPage() {
                     <span className="text-sm font-semibold text-slate-800">หน้านี้</span>
                     <span className="text-sm text-slate-500">{page} / {TOTAL_PAGES}</span>
                   </div>
-                  <p className="body-soft mt-2 text-sm leading-7">
+                  <p className="body-soft mt-2 text-sm leading-[1.6]">
                     ตอบแล้ว {answeredOnPage} จาก {ITEMS_PER_PAGE} ข้อ
                     {remaining > 0 ? ` · เหลือทั้งหมด ${remaining} ข้อ` : ''}
                   </p>
                 </div>
 
                 <div className="muted-panel rounded-[1.5rem] px-4 py-4">
-                  <p className="text-sm font-semibold text-slate-800">สเกลคำตอบ</p>
+                  <p className="text-sm font-semibold text-slate-800">สเกลคำตอบ เรียงจากมากไปน้อย</p>
                   <div className="mt-3 grid grid-cols-5 gap-2 text-center">
                     {LABELS.map(label => (
                       <div key={label.value} className="rounded-2xl bg-white/80 px-2 py-3">
-                        <div className="text-base font-semibold text-slate-800">{label.value}</div>
-                        <div className="mt-1 text-xs leading-4 text-slate-500">{label.th}</div>
+                        <div className="text-base font-semibold text-slate-800">{label.value}</div>                        
                       </div>
                     ))}
                   </div>
@@ -223,7 +222,7 @@ export default function QuizPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
                   คำแนะนำ
                 </p>
-                <p className="mt-3 text-sm leading-8 text-slate-600">
+                <p className="mt-3 text-sm leading-[1.65] text-slate-600">
                   ไม่มีคำตอบที่ถูกหรือผิด กรุณาตอบตามความเป็นจริงของคุณในชีวิตประจำวัน
                   ใช้ความรู้สึกแรกของคุณได้เลย
                 </p>

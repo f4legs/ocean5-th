@@ -7,4 +7,5 @@ export const STORAGE_KEYS = {
   SESSION: 'ocean_session',
   PAGE_DURATIONS: 'ocean_page_durations',
   RESPONSE_TIMES: 'ocean_response_times',
+  AI_REPORT: 'ocean_ai_report',
 } as const

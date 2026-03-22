@@ -1,11 +1,11 @@
 'use client'
 
-import { startTransition, useCallback, useEffect, useState } from 'react'
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { calcScores, DIMENSION_INFO, ScoreResult } from '@/lib/scoring'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
-import { getItem, removeItem } from '@/lib/storage'
+import { getItem, removeItem, setItem } from '@/lib/storage'
 
 const FACTOR_ORDER = ['O', 'C', 'E', 'A', 'N'] as const
 
@@ -74,11 +74,70 @@ interface ExportData {
   }
 }
 
+interface ProfileData {
+  age?: string | null
+  sex?: string | null
+  occupation?: string | null
+  goal?: string | null
+}
+
+interface SessionData {
+  sessionId: string
+  startedAt: string
+  quizCompletedAt?: string
+}
+
+interface CachedReport {
+  sessionId: string
+  signature: string
+  report: string
+  generatedAt: string
+}
+
+function buildReportSignature(scoresPct: ScoreResult['pct'], profileData: ProfileData): string {
+  return JSON.stringify({
+    scores: {
+      O: scoresPct.O,
+      C: scoresPct.C,
+      E: scoresPct.E,
+      A: scoresPct.A,
+      N: scoresPct.N,
+    },
+    profile: {
+      age: profileData.age ?? null,
+      sex: profileData.sex ?? null,
+      occupation: profileData.occupation ?? null,
+      goal: profileData.goal ?? null,
+    },
+  })
+}
+
+function readCachedReport(sessionId: string, signature: string): string | null {
+  const raw = getItem(STORAGE_KEYS.AI_REPORT)
+  if (!raw) return null
+
+  try {
+    const cached = JSON.parse(raw) as Partial<CachedReport>
+    if (
+      cached.sessionId === sessionId &&
+      cached.signature === signature &&
+      typeof cached.report === 'string' &&
+      cached.report.trim()
+    ) {
+      return cached.report
+    }
+  } catch {
+    /* ignore corrupt cache and regenerate */
+  }
+
+  return null
+}
+
 function buildExport(
   scores: ScoreResult,
-  profile: Record<string, string | null>,
+  profile: ProfileData,
   answers: Record<number, number>,
-  session: { sessionId: string; startedAt: string; quizCompletedAt?: string },
+  session: SessionData,
   pageDurations: Record<number, number>,
   responseTimes: Record<number, number>,
 ): ExportData {
@@ -139,9 +198,9 @@ function downloadJSON(data: ExportData) {
 export default function ResultsPage() {
   const router = useRouter()
   const [scores, setScores] = useState<ScoreResult | null>(null)
-  const [profile, setProfile] = useState<Record<string, string | null>>({})
+  const [profile, setProfile] = useState<ProfileData>({})
   const [answers, setAnswers] = useState<Record<number, number>>({})
-  const [session, setSession] = useState<{ sessionId: string; startedAt: string; quizCompletedAt?: string } | null>(null)
+  const [session, setSession] = useState<SessionData | null>(null)
   const [pageDurations, setPageDurations] = useState<Record<number, number>>({})
   const [responseTimes, setResponseTimes] = useState<Record<number, number>>({})
   const [report, setReport] = useState<string>('')
@@ -149,13 +208,20 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null)
   const [fakeProgress, setFakeProgress] = useState(7)
   const [loadingSeconds, setLoadingSeconds] = useState(0)
+  const hasInitialized = useRef(false)
+  const activeRequestId = useRef(0)
 
-  const fetchReport = useCallback((scoresPct: { E: number; A: number; C: number; N: number; O: number }, profileData: Record<string, string | null>) => {
+  const fetchReport = useCallback((
+    scoresPct: ScoreResult['pct'],
+    profileData: ProfileData,
+    cacheContext?: { sessionId: string; signature: string },
+  ) => {
+    const requestId = activeRequestId.current + 1
+    activeRequestId.current = requestId
     setFakeProgress(7)
     setLoadingSeconds(0)
     setLoading(true)
     setError(null)
-    setReport('')
 
     fetch('/api/interpret', {
       method: 'POST',
@@ -170,11 +236,34 @@ export default function ResultsPage() {
         return data
       })
       .then(data => {
-        if (data.report) setReport(data.report)
-        else setError('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+        if (requestId !== activeRequestId.current) return
+
+        if (data.report) {
+          setReport(data.report)
+          if (cacheContext) {
+            setItem(
+              STORAGE_KEYS.AI_REPORT,
+              JSON.stringify({
+                sessionId: cacheContext.sessionId,
+                signature: cacheContext.signature,
+                report: data.report,
+                generatedAt: new Date().toISOString(),
+              } satisfies CachedReport)
+            )
+          }
+        } else {
+          setError('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+        }
       })
-      .catch(err => setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ'))
-      .finally(() => setLoading(false))
+      .catch(err => {
+        if (requestId !== activeRequestId.current) return
+        setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ')
+      })
+      .finally(() => {
+        if (requestId === activeRequestId.current) {
+          setLoading(false)
+        }
+      })
   }, [])
 
   useEffect(() => {
@@ -196,9 +285,12 @@ export default function ResultsPage() {
     }, 1800)
 
     return () => window.clearInterval(interval)
-  }, [loading, report])
+  }, [loading])
 
   useEffect(() => {
+    if (hasInitialized.current) return
+    hasInitialized.current = true
+
     try {
       const rawAnswers = getItem(STORAGE_KEYS.ANSWERS)
       if (!rawAnswers) {
@@ -212,14 +304,17 @@ export default function ResultsPage() {
       const rawRT = getItem(STORAGE_KEYS.RESPONSE_TIMES)
 
       const parsedAnswers = JSON.parse(rawAnswers) as Record<number, number>
-      const profileData = rawProfile ? JSON.parse(rawProfile) : {}
+      const profileData = (rawProfile ? JSON.parse(rawProfile) : {}) as ProfileData
       const sessionData = rawSession
-        ? JSON.parse(rawSession)
+        ? (JSON.parse(rawSession) as SessionData)
         : { sessionId: crypto.randomUUID(), startedAt: new Date().toISOString() }
       const pageDurData = rawPageDur ? JSON.parse(rawPageDur) : {}
       const rtData = rawRT ? JSON.parse(rawRT) : {}
 
       const result = calcScores(parsedAnswers)
+      const reportSignature = buildReportSignature(result.pct, profileData)
+      const cachedReport = readCachedReport(sessionData.sessionId, reportSignature)
+
       startTransition(() => {
         setScores(result)
         setProfile(profileData)
@@ -227,11 +322,19 @@ export default function ResultsPage() {
         setSession(sessionData)
         setPageDurations(pageDurData)
         setResponseTimes(rtData)
+        setReport(cachedReport ?? '')
+        setLoading(!cachedReport)
+        setError(null)
       })
 
-      queueMicrotask(() => {
-        fetchReport(result.pct, profileData)
-      })
+      if (!cachedReport) {
+        queueMicrotask(() => {
+          fetchReport(result.pct, profileData, {
+            sessionId: sessionData.sessionId,
+            signature: reportSignature,
+          })
+        })
+      }
     } catch {
       router.push('/')
     }
@@ -245,6 +348,7 @@ export default function ResultsPage() {
     removeItem(STORAGE_KEYS.RESPONSE_TIMES)
     removeItem(STORAGE_KEYS.PAGE_DURATIONS)
     removeItem(STORAGE_KEYS.ANSWERS_DRAFT)
+    removeItem(STORAGE_KEYS.AI_REPORT)
     router.push('/')
   }
 
@@ -278,6 +382,15 @@ export default function ResultsPage() {
         ? 'AI กำลังเชื่อมโยงคะแนนทั้ง 5 มิติให้เป็นรายงานเดียวกัน'
         : 'AI กำลังเรียบเรียงรายงานฉบับเต็มให้อ่านง่ายและละเอียด'
 
+  function handleReevaluate() {
+    if (!scores || !session) return
+
+    fetchReport(scores.pct, profile, {
+      sessionId: session.sessionId,
+      signature: buildReportSignature(scores.pct, profile),
+    })
+  }
+
   return (
     <main id="main" className="page-shell results-page">
       <div className="page-wrap space-y-6">
@@ -286,7 +399,7 @@ export default function ResultsPage() {
             <div>
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
-                รายงานผล
+                results // b5
               </span>
 
               <h1 className="display-title mt-6 text-4xl sm:text-5xl">
@@ -296,6 +409,7 @@ export default function ResultsPage() {
               <p className="body-soft mt-4 max-w-2xl text-base leading-8">
                 ผลลัพธ์นี้สะท้อนแนวโน้มบุคลิกภาพจากคำตอบทั้ง 50 ข้อ
                 เพื่อช่วยให้เห็นรูปแบบการคิด การทำงาน และการรับมือกับอารมณ์ได้ชัดขึ้น
+                สามารถเซฟเป็น PDF ได้ สำหรับการใช้งานทั่วไป หรือดาวน์โหลดไฟล์ JSON หาก ADMIN แจ้ง (ในกรณีที่ต้องการวิเคราะห์เชิงลึกหรือเก็บเป็นข้อมูลส่วนตัว)
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
@@ -313,7 +427,7 @@ export default function ResultsPage() {
 
             <div className="section-panel rounded-[1.75rem] p-5 sm:p-6 print-avoid-break">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                สรุปเด่น
+                3 ด้านเด่นของคุณ
               </p>
               <div className="snapshot-list mt-4 grid gap-3">
                 {rankedFactors.slice(0, 3).map(factor => {
@@ -327,7 +441,6 @@ export default function ResultsPage() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <div className="factor-medallion"><span>{factor}</span></div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-slate-800">{info.label}</p>
                             <p className="truncate text-xs uppercase tracking-[0.16em] text-slate-400">{info.sublabel}</p>
@@ -383,7 +496,7 @@ export default function ResultsPage() {
                                 {info.sublabel}
                               </span>
                             </div>
-                            <p className="mt-2 text-sm leading-7 text-slate-600">
+                            <p className="mt-2 text-sm leading-[1.6] text-slate-600">
                               {info.description}
                             </p>
                           </div>
@@ -426,20 +539,36 @@ export default function ResultsPage() {
                     รายงานสรุปผลการประเมิน
                   </h2>
                 </div>
-                {!loading && !error && report ? (
-                  <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-strong)]">
-                    พร้อมอ่าน
-                  </span>
-                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  {loading && report ? (
+                    <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-strong)]">
+                      กำลังประเมินใหม่
+                    </span>
+                  ) : null}
+                  {!loading && !error && report ? (
+                    <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-strong)]">
+                      พร้อมอ่าน
+                    </span>
+                  ) : null}
+                  {report ? (
+                    <button
+                      onClick={handleReevaluate}
+                      disabled={loading}
+                      className="secondary-button min-h-0 px-4 py-2 text-xs"
+                    >
+                      {loading ? 'กำลังประเมินใหม่...' : 'ประเมินใหม่'}
+                    </button>
+                  ) : null}
+                </div>
               </div>
 
-              {loading && (
+              {loading && !report && (
                 <div className="py-10 text-center sm:px-8">
                   <div className="loading-line" role="status" aria-label="กำลังโหลด" />
                   <p className="mt-4 text-base font-medium text-slate-700">
                     {loadingMessage}
                   </p>
-                  <p className="body-faint mt-2 text-sm leading-7">
+                  <p className="body-faint mt-2 text-sm leading-[1.6]">
                     รายงานอาจใช้เวลาประมาณ 2-3 นาที
                   </p>
                   <div className="mx-auto mt-6 max-w-xl">
@@ -461,11 +590,20 @@ export default function ResultsPage() {
                 </div>
               )}
 
-              {error && (
+              {loading && report && (
+                <div className="mt-5 rounded-[1.5rem] border border-[rgba(95,116,130,0.16)] bg-[rgba(244,247,249,0.92)] px-5 py-4 text-sm text-slate-600">
+                  <div className="flex items-center gap-3">
+                    <div className="loading-line soft shrink-0" aria-hidden="true" />
+                    <p>กำลังสร้างรายงานฉบับใหม่ รายงานเดิมยังแสดงอยู่ด้านล่าง</p>
+                  </div>
+                </div>
+              )}
+
+              {error && !report && (
                 <div className="mt-5 rounded-[1.5rem] border border-red-200 bg-red-50/90 p-5 text-sm text-red-700">
                   <p>{error}</p>
                   <button
-                    onClick={() => fetchReport(scores.pct, profile)}
+                    onClick={handleReevaluate}
                     className="mt-4 inline-flex rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
                   >
                     ลองอีกครั้ง
@@ -473,7 +611,13 @@ export default function ResultsPage() {
                 </div>
               )}
 
-              {!loading && !error && report && (
+              {error && report && (
+                <div className="mt-5 rounded-[1.5rem] border border-amber-200 bg-amber-50/90 p-5 text-sm text-amber-800">
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {report && (
                 <div className="report-markdown mt-6">
                   <ReactMarkdown>{report}</ReactMarkdown>
                 </div>
@@ -527,7 +671,7 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            <p className="body-faint no-print px-2 text-center text-xs leading-6">
+            <p className="body-faint no-print px-2 text-center text-xs leading-[1.5]">
               อ้างอิง: IPIP Big Five · Yomaboot &amp; Cooper · ipip.ori.org · Public Domain
             </p>
           </aside>

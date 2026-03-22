@@ -44,7 +44,7 @@ export default function ProfilePage() {
             <div>
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
-                ข้อมูลเพิ่มเติม
+                additional // b5
               </span>
 
               <h1 className="display-title mt-6 text-4xl sm:text-5xl">
@@ -56,9 +56,9 @@ export default function ProfilePage() {
               </p>
 
               <div className="mt-8 section-panel rounded-[1.5rem] px-5 py-5">
-                <p className="text-sm font-semibold text-slate-800">ไม่บังคับทุกข้อ</p>
-                <p className="body-soft mt-2 text-sm leading-7">
-                  หากไม่ต้องการระบุรายละเอียดบางอย่าง สามารถปล่อยว่างไว้ได้
+                <p className="text-sm font-semibold text-slate-800">การกรอกข้อมูล (ไม่บังคับ)</p>
+                <p className="body-soft mt-2 text-sm leading-[1.6]">
+                  บางครั้งข้อมูลเพิ่มเติมช่วยให้การสรุปผลมีความเฉพาะตัวและเป็นประโยชน์มากขึ้น แต่หากไม่สะดวกที่จะกรอกก็สามารถข้ามไปดูผลลัพธ์ได้เลย
                 </p>
               </div>
 
@@ -72,7 +72,7 @@ export default function ProfilePage() {
                       id="age"
                       type="number"
                       min={10}
-                      max={100}
+                      max={120}
                       value={age}
                       onChange={e => setAge(e.target.value)}
                       placeholder="เช่น 28"
@@ -82,8 +82,8 @@ export default function ProfilePage() {
 
                   <div>
                     <p className="field-label">เพศ</p>
-                    <div className="grid gap-3 sm:grid-cols-3" role="group" aria-label="เพศ">
-                      {['ชาย', 'หญิง', 'ไม่ระบุ'].map(option => (
+                    <div className="grid gap-4 sm:grid-cols-4" role="group" aria-label="เพศ">
+                      {['ชาย', 'หญิง', 'ไม่ระบุ', 'อื่นๆ'].map(option => (
                         <button
                           key={option}
                           type="button"
@@ -101,14 +101,14 @@ export default function ProfilePage() {
 
                   <div>
                     <label htmlFor="occupation" className="field-label">
-                      อาชีพ
+                      อาชีพ หรือ ความเชี่ยวชาญ
                     </label>
                     <input
                       id="occupation"
                       type="text"
                       value={occupation}
                       onChange={e => setOccupation(e.target.value)}
-                      placeholder="เช่น นักศึกษา วิศวกร ครู"
+                      placeholder="เช่น นักศึกษา วิศวกร ที่ปรึกษา ฯลฯ"
                       className="field-input"
                     />
                   </div>
@@ -143,14 +143,14 @@ export default function ProfilePage() {
                 <h2 className="section-title mt-3 text-2xl">
                   ขั้นตอนสุดท้ายก่อนดูผลการประเมิน
                 </h2>
-                <p className="body-soft mt-3 text-sm leading-7">
+                <p className="body-soft mt-3 text-sm leading-[1.6]">
                   คะแนนและข้อมูลที่คุณกรอกจะถูกใช้เพื่อจัดทำรายงานสรุปภาษาไทย
                 </p>
               </div>
 
               <div className="muted-panel rounded-[1.75rem] px-5 py-6 sm:px-6">
                 <p className="text-sm font-semibold text-slate-800">หลักการความเป็นส่วนตัว</p>
-                <ul className="mt-3 space-y-3 text-sm leading-7 text-slate-600">
+                <ul className="mt-3 space-y-3 text-sm leading-[1.6] text-slate-600">
                   <li>ข้อมูลใช้เพื่อการสรุปผลเท่านั้น</li>
                   <li>ไม่มีการบังคับกรอกข้อมูลใด ๆ</li>
                   <li>ย้อนกลับไปแก้คำตอบได้ก่อนดูผล</li>
@@ -172,7 +172,7 @@ export default function ProfilePage() {
                 </Link>
               </div>
 
-              <p className="body-faint px-2 text-center text-xs leading-6">
+              <p className="body-faint px-2 text-center text-xs leading-[1.5]">
                 ข้อมูลทั้งหมดถูกเก็บไว้เฉพาะในอุปกรณ์ของคุณ
               </p>
             </aside>

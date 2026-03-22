@@ -11,7 +11,7 @@ const dimensions = [
 
 const notes = [
   '50 ข้อ · ใช้เวลา 5-8 นาที',
-  'ใช้ภายใน · จัดเก็บในอุปกรณ์นี้',
+  'ใช้ภายใน · ห้ามเผยแพร่',
 ]
 
 export default function Home() {
@@ -23,7 +23,7 @@ export default function Home() {
             <div className="max-w-2xl">
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
-                แบบประเมินภายใน
+                fars-ai // personality test
               </span>
 
               <h1 className="display-title mt-6 text-4xl sm:text-5xl">
@@ -50,13 +50,14 @@ export default function Home() {
                   <span aria-hidden="true">→</span>
                 </Link>
               </div>
-              <p className="inline-note mt-4">ไม่มีการเผยแพร่ข้อมูลสู่สาธารณะ</p>
+              <p className="inline-note mt-4">ไม่มีการจัดเก็บข้อมูลหรือเผยแพร่</p>
 
               <div className="mt-10 section-panel rounded-[1.5rem] px-5 py-5">
                 <p className="text-sm font-semibold text-slate-800">แนวทางการใช้งาน</p>
-                <ul className="bullet-list body-soft mt-3 text-sm leading-7">
+                <ul className="bullet-list body-soft mt-3 text-sm leading-[1.6]">
                   <li>ตอบตามพฤติกรรมปกติของผู้ประเมิน</li>
                   <li>ใช้เพื่อสะท้อนตนเองและประกอบการสนทนา</li>
+                  <li>หากพบปัญหา โปรดติดต่อ คุณ F (admin@fars-ai.com)</li>
                 </ul>
               </div>
             </div>
@@ -77,7 +78,7 @@ export default function Home() {
                           <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
                             {info.sublabel}
                           </p>
-                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                          <p className="mt-2 text-sm leading-[1.6] text-slate-600">
                             {note}
                           </p>
                         </div>
@@ -87,7 +88,7 @@ export default function Home() {
                 })}
               </div>
 
-              <p className="body-faint mt-5 text-xs leading-6">
+              <p className="body-faint mt-5 text-xs leading-[1.5]">
                 อ้างอิงแบบประเมิน IPIP Big Five ฉบับภาษาไทย
               </p>
             </aside>
