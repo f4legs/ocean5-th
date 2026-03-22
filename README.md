@@ -8,7 +8,7 @@ Thai-language Big Five personality test with AI-powered personalized results, bu
 
 ## Features
 
-- **50 คำถาม** — official Thai translation of IPIP Big Five items (Yomaboot & Cooper)
+- **50 คำถาม** — adapted from the Thai IPIP NEO Domains translation (Yomaboot & Cooper)
 - **5 มิติบุคลิกภาพ** — Openness, Conscientiousness, Extraversion, Agreeableness, Emotional Stability
 - **AI วิเคราะห์เชิงลึก** — Google Gemini generates a personalized Thai-language personality report
 - **ข้อมูลส่วนตัวเสริม** — optional age, sex, occupation, goal for more tailored insights
@@ -105,8 +105,15 @@ The percentage shown is: `(score − 10) / 40 × 100`
 
 ## Source & License
 
-Test items are from the **International Personality Item Pool (IPIP)** — public domain.
-Thai translation by **Panida Yomaboot & Dr. Andrew J. Cooper**.
-Source: [ipip.ori.org](https://ipip.ori.org)
+This app is based on the **International Personality Item Pool (IPIP)** and references the Thai IPIP NEO Domains translation by **Panida Yomaboot & Dr. Andrew J. Cooper**:
 
-> IPIP materials are in the public domain and may be used freely without permission.
+- Main source: [ipip.ori.org](https://ipip.ori.org)
+- Thai translation page: [Thai50-itemNEO-PI-R-Domains.htm](https://ipip.ori.org/Thai50-itemNEO-PI-R-Domains.htm)
+
+The IPIP website states that its items and scales are in the public domain. That public-domain status applies to the IPIP questionnaire materials, not to this app's original code, interface, explanatory copy, or reporting flow.
+
+Copyright for app-specific material:
+
+`© 2026 fars-ai / FARS-AI Cognitive Science Team. All rights reserved where applicable.`
+
+This repository includes a local adaptation of the Thai questionnaire wording for two items, so it should be described as an IPIP-based implementation rather than an official IPIP deployment.

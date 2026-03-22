@@ -8,9 +8,9 @@ export interface Item {
   reverse: boolean
 }
 
-// Official Thai translation by Panida Yomaboot & Dr. Andrew J. Cooper
+// Adapted from the Thai IPIP NEO Domains translation by Panida Yomaboot & Dr. Andrew J. Cooper
 // Source: https://ipip.ori.org/Thai50-itemNEO-PI-R-Domains.htm
-// IPIP materials are in the public domain.
+// IPIP items and scales are described by the source site as public domain.
 //
 // REPLACED ITEMS (deviations from the validated Thai translation):
 //

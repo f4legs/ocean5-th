@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { DIMENSION_INFO } from '@/lib/scoring'
+import ReferenceNote from '@/components/reference-note'
 
 const dimensions = [
   { key: 'O', note: 'การเปิดรับสิ่งใหม่และการคิดเชิงนามธรรม' },
@@ -11,7 +12,7 @@ const dimensions = [
 
 const notes = [
   '50 ข้อ · ใช้เวลา 5-8 นาที',
-  'ใช้ภายใน · ห้ามเผยแพร่',
+  'อ้างอิง IPIP ฉบับภาษาไทย',
 ]
 
 export default function Home() {
@@ -50,7 +51,7 @@ export default function Home() {
                   <span aria-hidden="true">→</span>
                 </Link>
               </div>
-              <p className="inline-note mt-4">ไม่มีการจัดเก็บข้อมูลหรือเผยแพร่</p>
+              <p className="inline-note mt-4">ไม่มีการจัดเก็บข้อมูลส่วนบุคคลบนเซิร์ฟเวอร์</p>
 
               <div className="mt-10 section-panel rounded-[1.5rem] px-5 py-5">
                 <p className="text-sm font-semibold text-slate-800">แนวทางการใช้งาน</p>
@@ -88,11 +89,11 @@ export default function Home() {
                 })}
               </div>
 
-              <p className="body-faint mt-5 text-xs leading-[1.5]">
-                อ้างอิงแบบประเมิน IPIP Big Five ฉบับภาษาไทย
-              </p>
+              <ReferenceNote compact className="mt-5" />
             </aside>
           </div>
+
+          <ReferenceNote className="mt-8" />
         </section>
       </div>
     </main>

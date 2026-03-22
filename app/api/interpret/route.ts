@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     goal       ? `- วัตถุประสงค์: ${goal}` : null,
   ].filter(Boolean).join('\n')
 
-  const prompt = `You are an expert clinical psychologist specializing in Big Five / Five-Factor Model personality assessment with deep knowledge of NEO-PI-R facet-level interpretation, cross-dimensional interaction patterns, and vocational psychology research.
+  const prompt = `You are an expert clinical psychologist specializing in Big Five / Five-Factor Model personality assessment with deep knowledge of NEO-PI-R facet-level interpretation, cross-dimensional interaction patterns, and vocational psychology research but DO NOT mention who you are.
 
 Write the entire report in Thai (ภาษาไทย). Use English only for psychological terminology in parentheses.
 

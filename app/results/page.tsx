@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import { calcScores, DIMENSION_INFO, ScoreResult } from '@/lib/scoring'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
 import { getItemAsync, removeItem, setItem } from '@/lib/storage'
+import ReferenceNote from '@/components/reference-note'
 
 const FACTOR_ORDER = ['O', 'C', 'E', 'A', 'N'] as const
 
@@ -65,6 +66,8 @@ interface ExportData {
   answers: Record<string, number>
   metadata: {
     itemSource: string
+    adaptation: string
+    copyrightNotice: string
     scale: string
     totalItems: number
     durationSeconds: number | null
@@ -186,7 +189,9 @@ function buildExport(
     },
     answers: answersStr,
     metadata: {
-      itemSource: 'IPIP NEO-PI-R Thai (Yomaboot & Cooper) — ipip.ori.org',
+      itemSource: 'Adapted from IPIP NEO Domains Thai translation by Panida Yomaboot & Andrew J. Cooper — https://ipip.ori.org/Thai50-itemNEO-PI-R-Domains.htm',
+      adaptation: 'This implementation includes two locally replaced items for contextual suitability and is not an official IPIP or Oregon Research Institute deployment.',
+      copyrightNotice: 'IPIP items and scales are public-domain according to ipip.ori.org. App code, interface, explanatory copy, and report structure © 2026 fars-ai / FARS-AI Cognitive Science Team.',
       scale: '1=ไม่ตรงกับฉันเลย, 2=ไม่ค่อยตรงกับฉัน, 3=เป็นกลาง, 4=ค่อนข้างตรงกับฉัน, 5=ตรงกับฉันมาก',
       totalItems: 50,
       durationSeconds,
@@ -205,6 +210,18 @@ function isProbablyIos(): boolean {
 
   return /iPad|iPhone|iPod/.test(navigator.userAgent)
     || (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
+}
+
+function shouldUseNativeShare(): boolean {
+  if (typeof navigator === 'undefined') return false
+
+  const navigatorWithUaData = navigator as Navigator & { userAgentData?: { mobile?: boolean } }
+  const userAgent = navigatorWithUaData.userAgent
+  const isIos = /iPad|iPhone|iPod/.test(userAgent)
+    || (userAgent.includes('Mac') && 'ontouchend' in document)
+  const isAndroid = /Android/i.test(userAgent)
+
+  return isIos || isAndroid || navigatorWithUaData.userAgentData?.mobile === true
 }
 
 function downloadBlob(fileName: string, blob: Blob, preferPreview = false) {
@@ -229,6 +246,7 @@ function downloadBlob(fileName: string, blob: Blob, preferPreview = false) {
 
 async function shareOrDownloadFile(file: File): Promise<void> {
   if (
+    shouldUseNativeShare() &&
     typeof navigator.share === 'function' &&
     typeof navigator.canShare === 'function' &&
     navigator.canShare({ files: [file] })
@@ -251,66 +269,25 @@ function buildJsonFile(data: ExportData): File {
   })
 }
 
-async function buildPdfFile(element: HTMLElement, sessionId: string): Promise<File> {
-  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-    import('html2canvas'),
-    import('jspdf'),
-  ])
-
-  const canvas = await html2canvas(element, {
-    backgroundColor: '#f4f7f9',
-    scale: Math.min(window.devicePixelRatio || 1, 2),
-    useCORS: true,
-    windowWidth: element.scrollWidth,
+async function buildPdfFile(data: ExportData, report: string): Promise<File> {
+  const response = await fetch('/api/report-pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data, report }),
   })
 
-  const pdf = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  })
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-  const margin = 10
-  const contentWidth = pageWidth - margin * 2
-  const contentHeight = pageHeight - margin * 2
-  const pageHeightPx = Math.floor((canvas.width * contentHeight) / contentWidth)
-
-  let renderedHeight = 0
-  let pageIndex = 0
-
-  while (renderedHeight < canvas.height) {
-    const sliceHeight = Math.min(pageHeightPx, canvas.height - renderedHeight)
-    const pageCanvas = document.createElement('canvas')
-    pageCanvas.width = canvas.width
-    pageCanvas.height = sliceHeight
-
-    const context = pageCanvas.getContext('2d')
-    if (!context) throw new Error('ไม่สามารถสร้างไฟล์ PDF ได้ในอุปกรณ์นี้')
-
-    context.drawImage(
-      canvas,
-      0,
-      renderedHeight,
-      canvas.width,
-      sliceHeight,
-      0,
-      0,
-      canvas.width,
-      sliceHeight,
-    )
-
-    if (pageIndex > 0) pdf.addPage()
-
-    const imageHeight = (sliceHeight * contentWidth) / canvas.width
-    pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, contentWidth, imageHeight, undefined, 'FAST')
-
-    renderedHeight += sliceHeight
-    pageIndex += 1
+  if (!response.ok) {
+    try {
+      const errorBody = await response.json() as { error?: string }
+      throw new Error(errorBody.error || 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
+    } catch (error) {
+      if (error instanceof Error) throw error
+      throw new Error('ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
+    }
   }
 
-  const blob = pdf.output('blob')
-  return new File([blob], `ocean-result-${sessionId.slice(0, 8)}.pdf`, {
+  const blob = await response.blob()
+  return new File([blob], `ocean-result-${data.sessionId.slice(0, 8)}.pdf`, {
     type: 'application/pdf',
   })
 }
@@ -332,7 +309,6 @@ export default function ResultsPage() {
   const [exportError, setExportError] = useState<string | null>(null)
   const hasInitialized = useRef(false)
   const activeRequestId = useRef(0)
-  const reportCaptureRef = useRef<HTMLDivElement | null>(null)
 
   const fetchReport = useCallback((
     scoresPct: ScoreResult['pct'],
@@ -551,26 +527,26 @@ export default function ResultsPage() {
     }
   }
 
-  async function handleDownloadPdf() {
-    if (!session || !reportCaptureRef.current) return
+  function handleDownloadPdf() {
+    if (!session || !exportData || !report) return
 
     setExportError(null)
     setExportingPdf(true)
 
-    try {
-      const pdfFile = await buildPdfFile(reportCaptureRef.current, session.sessionId)
-      await shareOrDownloadFile(pdfFile)
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      setExportError(err instanceof Error ? err.message : 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
-    } finally {
-      setExportingPdf(false)
-    }
+    void buildPdfFile(exportData, report)
+      .then(pdfFile => shareOrDownloadFile(pdfFile))
+      .catch(err => {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setExportError(err instanceof Error ? err.message : 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
+      })
+      .finally(() => {
+        setExportingPdf(false)
+      })
   }
 
   return (
     <main id="main" className="page-shell results-page">
-      <div ref={reportCaptureRef} className="page-wrap space-y-6">
+      <div className="page-wrap space-y-6">
         <section className="glass-panel results-hero overflow-hidden rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
             <div>
@@ -586,7 +562,8 @@ export default function ResultsPage() {
               <p className="body-soft mt-4 max-w-2xl text-base leading-8">
                 ผลลัพธ์นี้สะท้อนแนวโน้มบุคลิกภาพจากคำตอบทั้ง 50 ข้อ
                 เพื่อช่วยให้เห็นรูปแบบการคิด การทำงาน และการรับมือกับอารมณ์ได้ชัดขึ้น
-                สามารถเซฟเป็น PDF ได้ สำหรับการใช้งานทั่วไป หรือดาวน์โหลดไฟล์ JSON หาก ADMIN แจ้ง (ในกรณีที่ต้องการวิเคราะห์เชิงลึกหรือเก็บเป็นข้อมูลส่วนตัว)
+                สามารถดาวน์โหลด PDF ฉบับย่อที่ระบบสร้างจากฝั่งเซิร์ฟเวอร์สำหรับการอ่านและเก็บอ้างอิง
+                หรือดาวน์โหลดไฟล์ JSON หาก ADMIN แจ้ง (ในกรณีที่ต้องการวิเคราะห์เชิงลึกหรือเก็บเป็นข้อมูลส่วนตัว)
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
@@ -716,7 +693,7 @@ export default function ResultsPage() {
                     รายงานสรุปผลการประเมิน
                   </h2>
                 </div>
-                <div className="flex flex-wrap items-center gap-2" data-html2canvas-ignore="true">
+                <div className="flex flex-wrap items-center gap-2">
                   {loading && report ? (
                     <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-strong)]">
                       กำลังประเมินใหม่
@@ -818,7 +795,7 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6" data-html2canvas-ignore="true">
+            <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
                 การใช้งาน
               </p>
@@ -828,7 +805,7 @@ export default function ResultsPage() {
                   disabled={loading || !report || exportingPdf}
                   className="primary-button w-full text-sm"
                 >
-                  {exportingPdf ? 'กำลังสร้าง PDF...' : 'บันทึก PDF'}
+                  {exportingPdf ? 'กำลังสร้าง PDF...' : 'ดาวน์โหลด PDF'}
                 </button>
 
                 {exportData && (
@@ -856,7 +833,7 @@ export default function ResultsPage() {
               </div>
 
               <p className="body-faint mt-3 text-xs leading-[1.5]">
-                มือถือจะพยายามเปิดแผ่นแชร์หรือไฟล์ PDF ให้โดยอัตโนมัติ
+                ระบบจะสร้างไฟล์ PDF จากฝั่งเซิร์ฟเวอร์แล้วดาวน์โหลดหรือเปิดแผ่นแชร์ให้โดยอัตโนมัติ
               </p>
 
               {exportError && (
@@ -866,11 +843,13 @@ export default function ResultsPage() {
               )}
             </div>
 
-            <p className="body-faint no-print px-2 text-center text-xs leading-[1.5]" data-html2canvas-ignore="true">
-              อ้างอิง: IPIP Big Five · Yomaboot &amp; Cooper · ipip.ori.org · Public Domain
+            <p className="body-faint no-print px-2 text-center text-xs leading-[1.5]">
+              อ้างอิง: IPIP / ipip.ori.org · Thai translation by Panida Yomaboot &amp; Andrew J. Cooper · App by FARS-AI Cognitive Science Team
             </p>
           </aside>
         </section>
+
+        <ReferenceNote className="print-avoid-break" />
       </div>
     </main>
   )
