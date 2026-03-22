@@ -5,7 +5,11 @@
       "Bash(npm install:*)",
       "Bash(npm run:*)",
       "Bash(gh repo:*)",
-      "WebFetch(domain:ipip.ori.org)"
+      "WebFetch(domain:ipip.ori.org)",
+      "Bash(node -e \"const pkg = require\\(''./node_modules/react-markdown/package.json''\\); console.log\\(pkg.version, pkg.exports ? ''has exports'' : ''no exports'', pkg.main, pkg.module\\)\")",
+      "Bash(node -e \"const m = require\\(''c:/Users/F/Project Lighthouse/ocean5-th/node_modules/react-markdown/index.js''\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node -e \"const m = require\\(''c:/Users/F/Project Lighthouse/ocean5-th/node_modules/react-markdown/index.js''\\); console.log\\(typeof m.default, m.default?.name || ''unnamed''\\)\")",
+      "Bash(node -e \"const m = require\\(''c:/Users/F/Project Lighthouse/ocean5-th/node_modules/@google/genai''\\); const ai = new m.GoogleGenAI\\({apiKey:''x''}\\); console.log\\(Object.keys\\(ai.models\\).filter\\(k => k.includes\\(''tream''\\) || k.includes\\(''enerate''\\)\\)\\)\")"
     ]
   }
 }

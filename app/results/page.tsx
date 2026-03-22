@@ -151,6 +151,7 @@ function readCachedReport(raw: string | null, sessionId: string, signature: stri
   return null
 }
 
+
 function buildExport(
   scores: ScoreResult,
   profile: ProfileData,
@@ -322,47 +323,70 @@ export default function ResultsPage() {
     setLoading(true)
     setError(null)
 
-    fetch('/api/interpret', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scores: scoresPct, profile: profileData }),
-    })
-      .then(async res => {
-        const data = await res.json()
+    async function streamReport() {
+      try {
+        const res = await fetch('/api/interpret', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scores: scoresPct, profile: profileData }),
+        })
+
         if (!res.ok) {
+          const data = await res.json() as { error?: string }
           throw new Error(data.error || 'ไม่สามารถสร้างรายงานได้ในขณะนี้')
         }
-        return data
-      })
-      .then(data => {
-        if (requestId !== activeRequestId.current) return
 
-        if (data.report) {
-          setReport(data.report)
-          if (cacheContext) {
-            setItem(
-              STORAGE_KEYS.AI_REPORT,
-              JSON.stringify({
-                sessionId: cacheContext.sessionId,
-                signature: cacheContext.signature,
-                report: data.report,
-                generatedAt: new Date().toISOString(),
-              } satisfies CachedReport)
-            )
-          }
-        } else {
-          setError('ไม่สามารถสร้างรายงานได้ในขณะนี้')
-        }
-      })
-      .catch(err => {
-        if (requestId !== activeRequestId.current) return
-        setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ')
-      })
-      .finally(() => {
-        if (requestId === activeRequestId.current) {
+        if (!res.body) throw new Error('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let accumulated = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (requestId !== activeRequestId.current) { void reader.cancel(); return }
+          if (done) break
+
+          accumulated += decoder.decode(value, { stream: true })
+          setReport(accumulated)
           setLoading(false)
         }
-      })
+
+        if (requestId !== activeRequestId.current) return
+
+        // Normalize the complete text: strip code fence wrapper, fix headings
+        const normalized = accumulated
+          .trim()
+          .replace(/^```[a-z]*\n/, '').replace(/\n```$/, '').trim()
+          .replace(/^(#{1,6})([^\s#\n])/gm, '$1 $2')
+
+        setReport(normalized)
+
+        if (!normalized) {
+          setError('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+          return
+        }
+
+        if (cacheContext) {
+          setItem(
+            STORAGE_KEYS.AI_REPORT,
+            JSON.stringify({
+              sessionId: cacheContext.sessionId,
+              signature: cacheContext.signature,
+              report: normalized,
+              generatedAt: new Date().toISOString(),
+            } satisfies CachedReport)
+          )
+        }
+      } catch (err) {
+        if (requestId !== activeRequestId.current) return
+        setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ')
+      } finally {
+        if (requestId === activeRequestId.current) setLoading(false)
+      }
+    }
+
+    void streamReport()
   }, [])
 
   useEffect(() => {

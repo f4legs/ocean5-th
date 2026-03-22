@@ -120,8 +120,7 @@ ${profileLines ? `ข้อมูลส่วนตัว:\n${profileLines}` : '
   try {
     const ai = new GoogleGenAI({ apiKey })
 
-    // Promise.race: guard against Gemini hanging beyond Vercel's 60s limit
-    const genPromise = ai.models.generateContent({
+    const genStream = ai.models.generateContentStream({
       model: 'gemini-3.1-pro-preview',
       contents: prompt,
       config: {
@@ -131,16 +130,28 @@ ${profileLines ? `ข้อมูลส่วนตัว:\n${profileLines}` : '
         },
       },
     })
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Gemini timeout')), 55000)
-    )
-    const result = await Promise.race([genPromise, timeoutPromise])
-    const text = result.text ?? ''
-    return NextResponse.json({ report: text })
+
+    const encoder = new TextEncoder()
+    const body = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of await genStream) {
+            controller.enqueue(encoder.encode(chunk.text ?? ''))
+          }
+        } finally {
+          controller.close()
+        }
+      },
+    })
+
+    return new Response(body, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    })
   } catch (err) {
-    if ((err as Error).message === 'Gemini timeout') {
-      return NextResponse.json({ error: 'Request timeout — กรุณาลองใหม่อีกครั้ง' }, { status: 504 })
-    }
     console.error('Gemini API error:', err)
     return NextResponse.json({ error: 'Failed to generate report' }, { status: 500 })
   }

@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import PDFDocument from 'pdfkit'
 
@@ -72,25 +71,12 @@ const PAGE = {
   height: 841.89,
 }
 
-let fontCachePromise: Promise<{ sans: Buffer; serif: Buffer }> | null = null
-
 function getFontPaths() {
   return {
-    sans: path.join(process.cwd(), 'public/fonts/noto-sans-thai-regular.woff2'),
-    serif: path.join(process.cwd(), 'public/fonts/noto-serif-thai-regular.woff2'),
+    // Google Fonts TTFs embed correctly with PDFKit for Thai + Latin text in the generated PDF.
+    sans: path.join(process.cwd(), 'public/fonts/sarabun-regular.ttf'),
+    serif: path.join(process.cwd(), 'public/fonts/maitree-regular.ttf'),
   }
-}
-
-function loadFonts() {
-  if (!fontCachePromise) {
-    const fontPaths = getFontPaths()
-    fontCachePromise = Promise.all([
-      readFile(fontPaths.sans),
-      readFile(fontPaths.serif),
-    ]).then(([sans, serif]) => ({ sans, serif }))
-  }
-
-  return fontCachePromise
 }
 
 function stripInlineMarkdown(text: string): string {
@@ -146,15 +132,26 @@ function parseMarkdown(markdown: string) {
       continue
     }
 
-    if (line.startsWith('### ')) {
+    if (/^-{3,}$/.test(line)) {
       flushAll()
-      blocks.push({ type: 'h3', text: stripInlineMarkdown(line.slice(4)) })
       continue
     }
 
-    if (line.startsWith('## ')) {
+    if (/^###\s*/.test(line)) {
       flushAll()
-      blocks.push({ type: 'h2', text: stripInlineMarkdown(line.slice(3)) })
+      blocks.push({ type: 'h3', text: stripInlineMarkdown(line.replace(/^###\s*/, '')) })
+      continue
+    }
+
+    if (/^##\s*/.test(line)) {
+      flushAll()
+      blocks.push({ type: 'h2', text: stripInlineMarkdown(line.replace(/^##\s*/, '')) })
+      continue
+    }
+
+    if (/^#\s*/.test(line)) {
+      flushAll()
+      blocks.push({ type: 'h2', text: stripInlineMarkdown(line.replace(/^#\s*/, '')) })
       continue
     }
 
@@ -328,23 +325,21 @@ function drawFooter(doc: PDFKit.PDFDocument, data: ReportPdfData) {
   const range = doc.bufferedPageRange()
 
   for (let i = 0; i < range.count; i += 1) {
-    doc.switchToPage(i)
+    doc.switchToPage(range.start + i)
     const label = `OCEAN Report · ${data.sessionId.slice(0, 8)} · ${i + 1}/${range.count}`
-    doc.font('Sans').fontSize(9).fillColor('#75858f').text(label, PAGE.margin, PAGE.height - 34, {
-      width: PAGE.width - PAGE.margin * 2,
-      align: 'center',
-    })
+    doc.font('Sans').fontSize(9).fillColor('#75858f')
+    const labelWidth = doc.widthOfString(label)
+    const labelX = (PAGE.width - labelWidth) / 2
+    doc.text(label, labelX, PAGE.height - 34, { lineBreak: false })
   }
 }
 
 export async function createReportPdf(data: ReportPdfData, report: string) {
-  const { sans, serif } = await loadFonts()
   const fontPaths = getFontPaths()
   const topFactors = [...FACTOR_ORDER].sort((a, b) => data.scores.pct[b] - data.scores.pct[a]).slice(0, 3)
   const chunks: Buffer[] = []
 
   const doc = new PDFDocument({
-    font: fontPaths.sans,
     size: 'A4',
     margins: { top: PAGE.margin, right: PAGE.margin, bottom: PAGE.margin, left: PAGE.margin },
     autoFirstPage: false,
@@ -357,8 +352,8 @@ export async function createReportPdf(data: ReportPdfData, report: string) {
     },
   })
 
-  doc.registerFont('Sans', sans)
-  doc.registerFont('Serif', serif)
+  doc.registerFont('Sans', fontPaths.sans)
+  doc.registerFont('Serif', fontPaths.serif)
   doc.on('data', chunk => chunks.push(Buffer.from(chunk)))
   doc.addPage()
 
@@ -405,6 +400,7 @@ export async function createReportPdf(data: ReportPdfData, report: string) {
   )
   FACTOR_ORDER.forEach(factor => drawScoreCard(doc, factor, data))
 
+  doc.addPage()
   drawSectionTitle(
     doc,
     2,
