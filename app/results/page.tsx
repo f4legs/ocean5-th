@@ -1,6 +1,6 @@
 'use client'
 
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { calcScores, DIMENSION_INFO, ScoreResult } from '@/lib/scoring'
@@ -308,7 +308,6 @@ export default function ResultsPage() {
   const [loadingSeconds, setLoadingSeconds] = useState(0)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
-  const hasInitialized = useRef(false)
   const activeRequestId = useRef(0)
 
   const fetchReport = useCallback((
@@ -411,9 +410,6 @@ export default function ResultsPage() {
   }, [loading])
 
   useEffect(() => {
-    if (hasInitialized.current) return
-    hasInitialized.current = true
-
     let cancelled = false
 
     async function restoreResults() {
@@ -453,17 +449,15 @@ export default function ResultsPage() {
 
         if (cancelled) return
 
-        startTransition(() => {
-          setScores(result)
-          setProfile(profileData)
-          setAnswers(parsedAnswers)
-          setSession(sessionData)
-          setPageDurations(pageDurData)
-          setResponseTimes(rtData)
-          setReport(cachedReport ?? '')
-          setLoading(!cachedReport)
-          setError(null)
-        })
+        setScores(result)
+        setProfile(profileData)
+        setAnswers(parsedAnswers)
+        setSession(sessionData)
+        setPageDurations(pageDurData)
+        setResponseTimes(rtData)
+        setReport(cachedReport ?? '')
+        setLoading(!cachedReport)
+        setError(null)
 
         if (!cachedReport) {
           queueMicrotask(() => {
@@ -485,7 +479,8 @@ export default function ResultsPage() {
     return () => {
       cancelled = true
     }
-  }, [router, fetchReport])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount; router and fetchReport are stable refs
+  }, [])
 
   function handleRestart() {
     removeItem(STORAGE_KEYS.ANSWERS)
