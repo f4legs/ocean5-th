@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getPageItems, items, ITEMS_PER_PAGE, TOTAL_PAGES } from '@/lib/items'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
-import { getItem, setItem } from '@/lib/storage'
+import { getItemAsync, setItem } from '@/lib/storage'
 
 const LABELS = [
   { value: 5, th: 'ตรงมาก' },
@@ -30,26 +30,39 @@ export default function QuizPage() {
 
   // Restore draft answers and init session on mount
   useEffect(() => {
-    const savedAnswers = getItem(STORAGE_KEYS.ANSWERS_DRAFT) ?? getItem(STORAGE_KEYS.ANSWERS)
-    if (savedAnswers) {
-      try { setAnswers(JSON.parse(savedAnswers)) } catch { /* ignore corrupt draft */ }
-    }
+    let cancelled = false
 
-    const savedPage = getItem(STORAGE_KEYS.QUIZ_PAGE)
-    if (savedPage) {
-      const parsedPage = Number.parseInt(savedPage, 10)
-      if (Number.isFinite(parsedPage) && parsedPage >= 1 && parsedPage <= TOTAL_PAGES) {
-        setPage(parsedPage)
+    async function restoreState() {
+      const savedAnswers = await getItemAsync(STORAGE_KEYS.ANSWERS_DRAFT) ?? await getItemAsync(STORAGE_KEYS.ANSWERS)
+      if (!cancelled && savedAnswers) {
+        try {
+          setAnswers(JSON.parse(savedAnswers))
+        } catch {
+          /* ignore corrupt draft */
+        }
+      }
+
+      const savedPage = await getItemAsync(STORAGE_KEYS.QUIZ_PAGE)
+      if (!cancelled && savedPage) {
+        const parsedPage = Number.parseInt(savedPage, 10)
+        if (Number.isFinite(parsedPage) && parsedPage >= 1 && parsedPage <= TOTAL_PAGES) {
+          setPage(parsedPage)
+        }
+      }
+
+      const existing = await getItemAsync(STORAGE_KEYS.SESSION)
+      if (!existing) {
+        setItem(STORAGE_KEYS.SESSION, JSON.stringify({
+          sessionId: crypto.randomUUID(),
+          startedAt: new Date().toISOString(),
+        }))
       }
     }
 
-    // Create session if not exists
-    const existing = getItem(STORAGE_KEYS.SESSION)
-    if (!existing) {
-      setItem(STORAGE_KEYS.SESSION, JSON.stringify({
-        sessionId: crypto.randomUUID(),
-        startedAt: new Date().toISOString(),
-      }))
+    void restoreState()
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -106,7 +119,7 @@ export default function QuizPage() {
     setItem(STORAGE_KEYS.ANSWERS_DRAFT, JSON.stringify(next))
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (!allAnswered) return
 
     // Record page duration
@@ -124,7 +137,7 @@ export default function QuizPage() {
       setItem(STORAGE_KEYS.QUIZ_PAGE, String(page))
 
       // Update session with completion time
-      const session = getItem(STORAGE_KEYS.SESSION)
+      const session = await getItemAsync(STORAGE_KEYS.SESSION)
       if (session) {
         const s = JSON.parse(session)
         setItem(STORAGE_KEYS.SESSION, JSON.stringify({

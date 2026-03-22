@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { calcScores, DIMENSION_INFO, ScoreResult } from '@/lib/scoring'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
-import { getItem, removeItem, setItem } from '@/lib/storage'
+import { getItemAsync, removeItem, setItem } from '@/lib/storage'
 
 const FACTOR_ORDER = ['O', 'C', 'E', 'A', 'N'] as const
 
@@ -128,8 +128,7 @@ function normalizeProfile(profileData: ProfileData): ExportProfile {
   }
 }
 
-function readCachedReport(sessionId: string, signature: string): string | null {
-  const raw = getItem(STORAGE_KEYS.AI_REPORT)
+function readCachedReport(raw: string | null, sessionId: string, signature: string): string | null {
   if (!raw) return null
 
   try {
@@ -201,14 +200,119 @@ function buildExport(
   }
 }
 
-function downloadJSON(data: ExportData) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+function isProbablyIos(): boolean {
+  if (typeof navigator === 'undefined') return false
+
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.userAgent.includes('Mac') && 'ontouchend' in document)
+}
+
+function downloadBlob(fileName: string, blob: Blob, preferPreview = false) {
   const url = URL.createObjectURL(blob)
+
+  if (preferPreview) {
+    const preview = window.open(url, '_blank', 'noopener,noreferrer')
+    if (preview) {
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      return
+    }
+  }
+
   const a = document.createElement('a')
   a.href = url
-  a.download = `ocean-result-${data.sessionId.slice(0, 8)}.json`
+  a.download = fileName
+  a.rel = 'noopener'
   a.click()
-  URL.revokeObjectURL(url)
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
+async function shareOrDownloadFile(file: File): Promise<void> {
+  if (
+    typeof navigator.share === 'function' &&
+    typeof navigator.canShare === 'function' &&
+    navigator.canShare({ files: [file] })
+  ) {
+    await navigator.share({
+      files: [file],
+      title: file.name,
+      text: 'ผลลัพธ์การประเมินบุคลิกภาพ OCEAN',
+    })
+    return
+  }
+
+  downloadBlob(file.name, file, isProbablyIos())
+}
+
+function buildJsonFile(data: ExportData): File {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  return new File([blob], `ocean-result-${data.sessionId.slice(0, 8)}.json`, {
+    type: 'application/json',
+  })
+}
+
+async function buildPdfFile(element: HTMLElement, sessionId: string): Promise<File> {
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+    import('html2canvas'),
+    import('jspdf'),
+  ])
+
+  const canvas = await html2canvas(element, {
+    backgroundColor: '#f4f7f9',
+    scale: Math.min(window.devicePixelRatio || 1, 2),
+    useCORS: true,
+    windowWidth: element.scrollWidth,
+  })
+
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  })
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const margin = 10
+  const contentWidth = pageWidth - margin * 2
+  const contentHeight = pageHeight - margin * 2
+  const pageHeightPx = Math.floor((canvas.width * contentHeight) / contentWidth)
+
+  let renderedHeight = 0
+  let pageIndex = 0
+
+  while (renderedHeight < canvas.height) {
+    const sliceHeight = Math.min(pageHeightPx, canvas.height - renderedHeight)
+    const pageCanvas = document.createElement('canvas')
+    pageCanvas.width = canvas.width
+    pageCanvas.height = sliceHeight
+
+    const context = pageCanvas.getContext('2d')
+    if (!context) throw new Error('ไม่สามารถสร้างไฟล์ PDF ได้ในอุปกรณ์นี้')
+
+    context.drawImage(
+      canvas,
+      0,
+      renderedHeight,
+      canvas.width,
+      sliceHeight,
+      0,
+      0,
+      canvas.width,
+      sliceHeight,
+    )
+
+    if (pageIndex > 0) pdf.addPage()
+
+    const imageHeight = (sliceHeight * contentWidth) / canvas.width
+    pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, contentWidth, imageHeight, undefined, 'FAST')
+
+    renderedHeight += sliceHeight
+    pageIndex += 1
+  }
+
+  const blob = pdf.output('blob')
+  return new File([blob], `ocean-result-${sessionId.slice(0, 8)}.pdf`, {
+    type: 'application/pdf',
+  })
 }
 
 export default function ResultsPage() {
@@ -224,8 +328,11 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null)
   const [fakeProgress, setFakeProgress] = useState(7)
   const [loadingSeconds, setLoadingSeconds] = useState(0)
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
   const hasInitialized = useRef(false)
   const activeRequestId = useRef(0)
+  const reportCaptureRef = useRef<HTMLDivElement | null>(null)
 
   const fetchReport = useCallback((
     scoresPct: ScoreResult['pct'],
@@ -307,52 +414,76 @@ export default function ResultsPage() {
     if (hasInitialized.current) return
     hasInitialized.current = true
 
-    try {
-      const rawAnswers = getItem(STORAGE_KEYS.ANSWERS)
-      if (!rawAnswers) {
-        router.push('/')
-        return
-      }
+    let cancelled = false
 
-      const rawProfile = getItem(STORAGE_KEYS.PROFILE)
-      const rawSession = getItem(STORAGE_KEYS.SESSION)
-      const rawPageDur = getItem(STORAGE_KEYS.PAGE_DURATIONS)
-      const rawRT = getItem(STORAGE_KEYS.RESPONSE_TIMES)
+    async function restoreResults() {
+      try {
+        const [
+          rawAnswers,
+          rawProfile,
+          rawSession,
+          rawPageDur,
+          rawRT,
+          rawCachedReport,
+        ] = await Promise.all([
+          getItemAsync(STORAGE_KEYS.ANSWERS),
+          getItemAsync(STORAGE_KEYS.PROFILE),
+          getItemAsync(STORAGE_KEYS.SESSION),
+          getItemAsync(STORAGE_KEYS.PAGE_DURATIONS),
+          getItemAsync(STORAGE_KEYS.RESPONSE_TIMES),
+          getItemAsync(STORAGE_KEYS.AI_REPORT),
+        ])
 
-      const parsedAnswers = JSON.parse(rawAnswers) as Record<number, number>
-      const profileData = (rawProfile ? JSON.parse(rawProfile) : {}) as ProfileData
-      const sessionData = rawSession
-        ? (JSON.parse(rawSession) as SessionData)
-        : { sessionId: crypto.randomUUID(), startedAt: new Date().toISOString() }
-      const pageDurData = rawPageDur ? JSON.parse(rawPageDur) : {}
-      const rtData = rawRT ? JSON.parse(rawRT) : {}
+        if (!rawAnswers) {
+          router.push('/')
+          return
+        }
 
-      const result = calcScores(parsedAnswers)
-      const reportSignature = buildReportSignature(result.pct, profileData)
-      const cachedReport = readCachedReport(sessionData.sessionId, reportSignature)
+        const parsedAnswers = JSON.parse(rawAnswers) as Record<number, number>
+        const profileData = (rawProfile ? JSON.parse(rawProfile) : {}) as ProfileData
+        const sessionData = rawSession
+          ? (JSON.parse(rawSession) as SessionData)
+          : { sessionId: crypto.randomUUID(), startedAt: new Date().toISOString() }
+        const pageDurData = rawPageDur ? JSON.parse(rawPageDur) : {}
+        const rtData = rawRT ? JSON.parse(rawRT) : {}
 
-      startTransition(() => {
-        setScores(result)
-        setProfile(profileData)
-        setAnswers(parsedAnswers)
-        setSession(sessionData)
-        setPageDurations(pageDurData)
-        setResponseTimes(rtData)
-        setReport(cachedReport ?? '')
-        setLoading(!cachedReport)
-        setError(null)
-      })
+        const result = calcScores(parsedAnswers)
+        const reportSignature = buildReportSignature(result.pct, profileData)
+        const cachedReport = readCachedReport(rawCachedReport, sessionData.sessionId, reportSignature)
 
-      if (!cachedReport) {
-        queueMicrotask(() => {
-          fetchReport(result.pct, profileData, {
-            sessionId: sessionData.sessionId,
-            signature: reportSignature,
-          })
+        if (cancelled) return
+
+        startTransition(() => {
+          setScores(result)
+          setProfile(profileData)
+          setAnswers(parsedAnswers)
+          setSession(sessionData)
+          setPageDurations(pageDurData)
+          setResponseTimes(rtData)
+          setReport(cachedReport ?? '')
+          setLoading(!cachedReport)
+          setError(null)
         })
+
+        if (!cachedReport) {
+          queueMicrotask(() => {
+            fetchReport(result.pct, profileData, {
+              sessionId: sessionData.sessionId,
+              signature: reportSignature,
+            })
+          })
+        }
+      } catch {
+        if (!cancelled) {
+          router.push('/')
+        }
       }
-    } catch {
-      router.push('/')
+    }
+
+    void restoreResults()
+
+    return () => {
+      cancelled = true
     }
   }, [router, fetchReport])
 
@@ -407,9 +538,39 @@ export default function ResultsPage() {
     })
   }
 
+  async function handleDownloadJson() {
+    if (!exportData) return
+
+    setExportError(null)
+
+    try {
+      await shareOrDownloadFile(buildJsonFile(exportData))
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      setExportError('ไม่สามารถดาวน์โหลดไฟล์ JSON ได้ในขณะนี้')
+    }
+  }
+
+  async function handleDownloadPdf() {
+    if (!session || !reportCaptureRef.current) return
+
+    setExportError(null)
+    setExportingPdf(true)
+
+    try {
+      const pdfFile = await buildPdfFile(reportCaptureRef.current, session.sessionId)
+      await shareOrDownloadFile(pdfFile)
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      setExportError(err instanceof Error ? err.message : 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   return (
     <main id="main" className="page-shell results-page">
-      <div className="page-wrap space-y-6">
+      <div ref={reportCaptureRef} className="page-wrap space-y-6">
         <section className="glass-panel results-hero overflow-hidden rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
             <div>
@@ -555,7 +716,7 @@ export default function ResultsPage() {
                     รายงานสรุปผลการประเมิน
                   </h2>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2" data-html2canvas-ignore="true">
                   {loading && report ? (
                     <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-strong)]">
                       กำลังประเมินใหม่
@@ -657,26 +818,34 @@ export default function ResultsPage() {
               </div>
             </div>
 
-            <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
+            <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6" data-html2canvas-ignore="true">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
                 การใช้งาน
               </p>
               <div className="mt-4 space-y-3 no-print">
                 <button
-                  onClick={() => window.print()}
+                  onClick={handleDownloadPdf}
+                  disabled={loading || !report || exportingPdf}
                   className="primary-button w-full text-sm"
                 >
-                  พิมพ์ / PDF
+                  {exportingPdf ? 'กำลังสร้าง PDF...' : 'บันทึก PDF'}
                 </button>
 
                 {exportData && (
                   <button
-                    onClick={() => downloadJSON(exportData)}
+                    onClick={handleDownloadJson}
                     className="secondary-button w-full text-sm"
                   >
                     ดาวน์โหลด JSON
                   </button>
                 )}
+
+                <button
+                  onClick={() => window.print()}
+                  className="secondary-button w-full text-sm"
+                >
+                  เปิดหน้าพิมพ์
+                </button>
 
                 <button
                   onClick={handleRestart}
@@ -685,9 +854,19 @@ export default function ResultsPage() {
                   ทำแบบทดสอบอีกครั้ง
                 </button>
               </div>
+
+              <p className="body-faint mt-3 text-xs leading-[1.5]">
+                มือถือจะพยายามเปิดแผ่นแชร์หรือไฟล์ PDF ให้โดยอัตโนมัติ
+              </p>
+
+              {exportError && (
+                <div className="mt-4 rounded-[1.2rem] border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs leading-[1.5] text-amber-800">
+                  {exportError}
+                </div>
+              )}
             </div>
 
-            <p className="body-faint no-print px-2 text-center text-xs leading-[1.5]">
+            <p className="body-faint no-print px-2 text-center text-xs leading-[1.5]" data-html2canvas-ignore="true">
               อ้างอิง: IPIP Big Five · Yomaboot &amp; Cooper · ipip.ori.org · Public Domain
             </p>
           </aside>

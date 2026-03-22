@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
-import { setItem } from '@/lib/storage'
+import { getItemAsync, setItem } from '@/lib/storage'
 
 const GOALS = [
   'รู้จักตัวเองมากขึ้น',
@@ -15,22 +15,70 @@ const GOALS = [
   'อื่นๆ',
 ]
 
+function normalizeProfile(age: string, sex: string, occupation: string, goal: string) {
+  const parsedAge = age ? parseInt(age, 10) : null
+  const validAge = parsedAge && parsedAge >= 10 && parsedAge <= 100 ? String(parsedAge) : null
+
+  return {
+    age: validAge,
+    sex: sex || null,
+    occupation: occupation.trim() || null,
+    goal: goal || null,
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const [age, setAge] = useState('')
   const [sex, setSex] = useState('')
   const [occupation, setOccupation] = useState('')
   const [goal, setGoal] = useState('')
+  const hasRestored = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function restoreProfile() {
+      const savedProfile = await getItemAsync(STORAGE_KEYS.PROFILE)
+      if (cancelled) return
+      if (!savedProfile) {
+        hasRestored.current = true
+        return
+      }
+
+      try {
+        const parsed = JSON.parse(savedProfile) as {
+          age?: string | null
+          sex?: string | null
+          occupation?: string | null
+          goal?: string | null
+        }
+
+        setAge(parsed.age ?? '')
+        setSex(parsed.sex ?? '')
+        setOccupation(parsed.occupation ?? '')
+        setGoal(parsed.goal ?? '')
+      } catch {
+        /* ignore corrupt profile */
+      } finally {
+        hasRestored.current = true
+      }
+    }
+
+    void restoreProfile()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!hasRestored.current) return
+    setItem(STORAGE_KEYS.PROFILE, JSON.stringify(normalizeProfile(age, sex, occupation, goal)))
+  }, [age, goal, occupation, sex])
 
   function handleSubmit() {
-    const parsedAge = age ? parseInt(age) : null
-    const validAge = parsedAge && parsedAge >= 10 && parsedAge <= 100 ? String(parsedAge) : null
-    const profile = {
-      age: validAge,
-      sex: sex || null,
-      occupation: occupation || null,
-      goal: goal || null,
-    }
+    const profile = normalizeProfile(age, sex, occupation, goal)
 
     setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile))
     router.push('/results')

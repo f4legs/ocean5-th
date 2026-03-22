@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Noto_Sans_Thai, Noto_Serif_Thai } from 'next/font/google'
+import StorageBootstrap from '@/components/storage-bootstrap'
 import './globals.css'
 
 const bodyFont = Noto_Sans_Thai({
@@ -54,6 +55,7 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${bodyFont.variable} ${displayFont.variable}`}>
       <body className="font-[family-name:var(--font-body)] antialiased text-slate-800 min-h-screen">
+        <StorageBootstrap />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-[var(--accent-strong)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
