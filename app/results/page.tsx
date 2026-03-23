@@ -358,6 +358,7 @@ export default function ResultsPage() {
           .trim()
           .replace(/^```[a-z]*\n/, '').replace(/\n```$/, '').trim()
           .replace(/^(#{1,6})([^\s#\n])/gm, '$1 $2')
+          .replace(/([^\n])\n(#{1,6} )/g, '$1\n\n$2')
 
         setReport(normalized)
 

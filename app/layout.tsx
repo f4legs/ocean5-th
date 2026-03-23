@@ -53,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="th" className={`${bodyFont.variable} ${displayFont.variable}`}>
+    <html lang="th" className={`${bodyFont.variable} ${displayFont.variable}`} data-scroll-behavior="smooth">
       <body className="font-[family-name:var(--font-body)] antialiased text-slate-800 min-h-screen">
         <StorageBootstrap />
         <a
