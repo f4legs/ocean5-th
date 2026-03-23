@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { DIMENSION_INFO } from '@/lib/scoring'
 import ReferenceNote from '@/components/reference-note'
+import ImportJsonButton from '@/components/import-json-button'
 
 const dimensions = [
   { key: 'O', note: 'การเปิดรับสิ่งใหม่และการคิดเชิงนามธรรม' },
@@ -61,6 +62,9 @@ export default function Home() {
                   <li>หากเปิดด้วย LINE Browser จะเซฟ PDF ไม่ได้ ให้กด Open Browser ที่ขวาล่าง</li>
                   <li>หากพบปัญหา โปรดติดต่อ (admin@fars-ai.tech)</li>
                 </ul>
+                <div className="mt-4 border-t border-[var(--line)] pt-4">
+                  <ImportJsonButton />
+                </div>
               </div>
             </div>
 
