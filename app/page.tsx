@@ -58,7 +58,8 @@ export default function Home() {
                 <ul className="bullet-list body-soft mt-3 text-sm leading-[1.6]">
                   <li>ตอบตามพฤติกรรมปกติของผู้ประเมิน</li>
                   <li>ใช้เพื่อสะท้อนตนเองและประกอบการสนทนา</li>
-                  <li>หากพบปัญหา โปรดติดต่อ คุณ F (admin@fars-ai.tech)</li>
+                  <li>หากเปิดด้วย LINE Browser จะเซฟ PDF ไม่ได้ ให้กด Open Browser ที่ขวาล่าง</li>
+                  <li>หากพบปัญหา โปรดติดต่อ (admin@fars-ai.tech)</li>
                 </ul>
               </div>
             </div>
