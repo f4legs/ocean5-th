@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Noto_Sans_Thai, Noto_Serif_Thai } from 'next/font/google'
+import { Noto_Sans_Thai, Noto_Serif_Thai, Outfit } from 'next/font/google'
 import StorageBootstrap from '@/components/storage-bootstrap'
 import './globals.css'
 
@@ -7,6 +7,12 @@ const bodyFont = Noto_Sans_Thai({
   subsets: ['thai', 'latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-body',
+})
+
+const brandFont = Outfit({
+  subsets: ['latin'],
+  weight: ['300'],
+  variable: '--font-brand',
 })
 
 const displayFont = Noto_Serif_Thai({
@@ -53,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="th" className={`${bodyFont.variable} ${displayFont.variable}`} data-scroll-behavior="smooth">
+    <html lang="th" className={`${bodyFont.variable} ${displayFont.variable} ${brandFont.variable}`} data-scroll-behavior="smooth">
       <body className="font-[family-name:var(--font-body)] antialiased text-slate-800 min-h-screen">
         <StorageBootstrap />
         <a
@@ -63,6 +69,7 @@ export default function RootLayout({
           ข้ามไปยังเนื้อหาหลัก
         </a>
         {children}
+
       </body>
     </html>
   )
