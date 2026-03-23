@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI, ThinkingLevel } from '@google/genai'
 
+export const maxDuration = 300 // seconds — requires Vercel Pro or higher
+
 // Simple in-memory rate limiter: max 5 requests per 10 minutes per IP
 // NOTE: On serverless (Vercel), each instance has its own Map — this is best-effort only.
 // For production-grade rate limiting, use Upstash or Vercel's built-in rate limits.
@@ -121,7 +123,7 @@ ${profileLines ? `ข้อมูลส่วนตัว:\n${profileLines}` : '
     const ai = new GoogleGenAI({ apiKey })
 
     const genStream = ai.models.generateContentStream({
-      model: 'gemini-3.1-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         maxOutputTokens: 8192,
