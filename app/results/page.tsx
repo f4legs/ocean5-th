@@ -308,6 +308,7 @@ export default function ResultsPage() {
   const [loadingSeconds, setLoadingSeconds] = useState(0)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [showRestartWarning, setShowRestartWarning] = useState(false)
   const activeRequestId = useRef(0)
 
   const fetchReport = useCallback((
@@ -845,11 +846,32 @@ export default function ResultsPage() {
                 </button>
 
                 <button
-                  onClick={handleRestart}
+                  onClick={() => setShowRestartWarning(true)}
                   className="tertiary-button w-full text-sm"
                 >
                   ทำแบบทดสอบอีกครั้ง
                 </button>
+
+                {showRestartWarning && (
+                  <div className="mt-3 rounded-[1.2rem] border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs leading-[1.6] text-amber-800">
+                    <p className="font-medium">คะแนนและข้อมูลทั้งหมดจะถูกลบออก</p>
+                    <p className="mt-0.5 text-amber-700">รวมถึงคำตอบ โปรไฟล์ และรายงาน AI ต้องการดำเนินการต่อหรือไม่?</p>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={handleRestart}
+                        className="rounded-full bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                      >
+                        ยืนยัน ลบและเริ่มใหม่
+                      </button>
+                      <button
+                        onClick={() => setShowRestartWarning(false)}
+                        className="rounded-full border border-amber-300 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                      >
+                        ยกเลิก
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <p className="body-faint mt-3 text-xs leading-[1.5]">
