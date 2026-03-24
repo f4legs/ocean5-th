@@ -11,32 +11,13 @@ import ReferenceNote from '@/components/reference-note'
 
 const FACTOR_ORDER = ['O', 'C', 'E', 'A', 'N'] as const
 
-const DIMENSION_STYLES: Record<string, { bar: string; chip: string; wash: string }> = {
-  O: {
-    bar: 'bg-[linear-gradient(90deg,#516673,#8ea0aa)]',
-    chip: 'bg-[#eef3f5] text-[#47606d]',
-    wash: 'from-[#f8fafb] to-[#f2f5f7]',
-  },
-  C: {
-    bar: 'bg-[linear-gradient(90deg,#485f6d,#8a9da8)]',
-    chip: 'bg-[#eef3f5] text-[#48606e]',
-    wash: 'from-[#f8fafb] to-[#f2f5f7]',
-  },
-  E: {
-    bar: 'bg-[linear-gradient(90deg,#49606d,#8d9fa9)]',
-    chip: 'bg-[#eef3f5] text-[#4a6270]',
-    wash: 'from-[#f8fafb] to-[#f2f5f7]',
-  },
-  A: {
-    bar: 'bg-[linear-gradient(90deg,#50656a,#90a2a7)]',
-    chip: 'bg-[#eef3f5] text-[#50686d]',
-    wash: 'from-[#f8fafb] to-[#f2f5f7]',
-  },
-  N: {
-    bar: 'bg-[linear-gradient(90deg,#566570,#95a3ac)]',
-    chip: 'bg-[#eef3f5] text-[#51656f]',
-    wash: 'from-[#f8fafb] to-[#f2f5f7]',
-  },
+// hues: O=210, C=38, E=158, A=268, N=348
+const DIMENSION_STYLES: Record<string, { hue: string; barColor: string; chipBg: string; chipText: string }> = {
+  O: { hue: '210', barColor: 'hsl(210,55%,52%)', chipBg: 'hsl(210,60%,95%)', chipText: 'hsl(210,50%,36%)' },
+  C: { hue: '38',  barColor: 'hsl(38,60%,50%)',  chipBg: 'hsl(38,70%,94%)',  chipText: 'hsl(38,55%,34%)' },
+  E: { hue: '158', barColor: 'hsl(158,50%,42%)', chipBg: 'hsl(158,60%,93%)', chipText: 'hsl(158,45%,30%)' },
+  A: { hue: '268', barColor: 'hsl(268,45%,55%)', chipBg: 'hsl(268,60%,95%)', chipText: 'hsl(268,40%,38%)' },
+  N: { hue: '348', barColor: 'hsl(348,52%,52%)', chipBg: 'hsl(348,60%,95%)', chipText: 'hsl(348,45%,36%)' },
 }
 
 function pctToLabel(pct: number): string {
@@ -653,16 +634,18 @@ export default function ResultsPage() {
                   return (
                     <div
                       key={factor}
-                      className={`snapshot-card rounded-[1.4rem] bg-gradient-to-r ${styles.wash} px-4 py-4`}
+                      className="snapshot-card rounded-[1.25rem] px-4 py-3.5"
+                      style={{ background: `hsl(${styles.hue},55%,97%)` }}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-slate-800">{info.label}</p>
-                            <p className="truncate text-xs uppercase tracking-[0.16em] text-slate-400">{info.sublabel}</p>
-                          </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold" style={{ color: 'var(--text-main)' }}>{info.label}</p>
+                          <p className="truncate text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--text-faint)' }}>{info.sublabel}</p>
                         </div>
-                        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${styles.chip}`}>
+                        <span
+                          className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold tabular-nums"
+                          style={{ background: styles.chipBg, color: styles.chipText }}
+                        >
                           {scores.pct[factor]}%
                         </span>
                       </div>
@@ -700,34 +683,44 @@ export default function ResultsPage() {
                   return (
                     <article
                       key={factor}
-                      className={`rounded-[1.6rem] bg-gradient-to-r ${styles.wash} p-4 sm:p-5`}
+                      className="rounded-2xl p-4 sm:p-5"
+                      style={{ background: `hsl(${styles.hue},55%,97%)` }}
                     >
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-start gap-4">
-                          <div className="factor-medallion shrink-0"><span>{factor}</span></div>
+                          <div
+                            className="factor-medallion shrink-0"
+                            style={{ color: styles.chipText, background: `linear-gradient(145deg, white, hsl(${styles.hue},50%,93%))`, borderColor: `hsl(${styles.hue},40%,86%)` }}
+                          >
+                            <span>{factor}</span>
+                          </div>
                           <div>
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              <h3 className="text-base font-semibold text-slate-800">{info.label}</h3>
-                              <span className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                              <h3 className="text-base font-semibold" style={{ color: 'var(--text-main)' }}>{info.label}</h3>
+                              <span className="text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--text-faint)' }}>
                                 {info.sublabel}
                               </span>
                             </div>
-                            <p className="mt-2 text-sm leading-[1.6] text-slate-600">
+                            <p className="mt-2 text-sm leading-[1.6]" style={{ color: 'var(--text-soft)' }}>
                               {info.description}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${styles.chip}`}>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className="rounded-full px-3 py-1 text-xs font-semibold"
+                            style={{ background: styles.chipBg, color: styles.chipText }}
+                          >
                             {pctToLabel(pct)}
                           </span>
-                          <span className="text-lg font-semibold text-slate-800">{pct}%</span>
+                          <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-main)' }}>{pct}%</span>
                         </div>
                       </div>
 
                       <div
-                        className="mt-4 h-3 overflow-hidden rounded-full bg-white/80"
+                        className="mt-4 rounded-full overflow-hidden"
+                        style={{ height: '6px', background: 'rgba(255,255,255,0.7)' }}
                         role="progressbar"
                         aria-valuenow={pct}
                         aria-valuemin={0}
@@ -735,8 +728,12 @@ export default function ResultsPage() {
                         aria-label={`${info.label} ${pct}%`}
                       >
                         <div
-                          className={`h-full rounded-full ${styles.bar} transition-all duration-700`}
-                          style={{ width: `${pct}%` }}
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${pct}%`,
+                            background: styles.barColor,
+                            boxShadow: `0 0 8px ${styles.barColor}`,
+                          }}
                         />
                       </div>
                     </article>
@@ -792,10 +789,17 @@ export default function ResultsPage() {
                       <span className="font-medium text-slate-700">ความคืบหน้าโดยประมาณ</span>
                       <span className="text-slate-500">{displayProgress}%</span>
                     </div>
-                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200/80">
+                    <div
+                      className="mt-3 rounded-full overflow-hidden"
+                      style={{ height: '6px', background: 'rgba(69,98,118,0.12)' }}
+                    >
                       <div
-                        className="h-full rounded-full bg-[linear-gradient(90deg,#284b5b,#8ba0ab)] transition-[width] duration-1000 ease-out"
-                        style={{ width: `${displayProgress}%` }}
+                        className="h-full rounded-full transition-[width] duration-1000 ease-out"
+                        style={{
+                          width: `${displayProgress}%`,
+                          background: 'var(--gradient-hero)',
+                          boxShadow: '0 0 8px rgba(69,98,118,0.4)',
+                        }}
                       />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">

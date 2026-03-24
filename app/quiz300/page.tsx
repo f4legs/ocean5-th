@@ -265,8 +265,8 @@ export default function Quiz300Page() {
                     </div>
                     <div className="factor-medallion factor-medallion-number"><span>{page}</span></div>
                   </div>
-                  <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-200/70" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100}>
-                    <div className="h-full rounded-full bg-[linear-gradient(90deg,#284b5b,#78909b)] transition-all duration-300" style={{ width: `${progressPct}%` }} />
+                  <div className="mt-4 rounded-full overflow-hidden" style={{ height: '6px', background: 'rgba(69,98,118,0.12)' }} role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPct}%`, background: 'var(--gradient-hero)', boxShadow: '0 0 8px rgba(69,98,118,0.4)' }} />
                   </div>
                 </div>
 
@@ -303,12 +303,13 @@ export default function Quiz300Page() {
                       </div>
                       <p id={qId} className="pt-1 text-base font-medium leading-8 text-slate-800 sm:text-lg">{item.th}</p>
                     </div>
-                    <div role="radiogroup" aria-labelledby={qId} className="mt-5 grid gap-3 sm:grid-cols-5">
+                    <div role="radiogroup" aria-labelledby={qId} className="mt-4 grid grid-cols-5 gap-2">
                       {LABELS.map(label => (
                         <button key={label.value} role="radio" aria-checked={selected === label.value} onClick={() => handleAnswer(item.id, label.value)}
-                          className={`scale-button flex items-center gap-3 px-4 py-4 text-left sm:min-h-[9rem] sm:flex-col sm:justify-center sm:gap-2 sm:px-3 sm:text-center ${selected === label.value ? 'active' : ''}`}>
-                          <span className="text-lg font-semibold sm:text-xl">{label.value}</span>
-                          <span className="scale-label text-sm leading-6 sm:text-xs sm:leading-5">{label.th}</span>
+                          className={`scale-button flex flex-col items-center justify-center gap-1 px-2 py-3 text-center ${selected === label.value ? 'active' : ''}`}
+                          style={{ minHeight: '4.5rem' }}>
+                          <span className="text-base font-bold">{label.value}</span>
+                          <span className="scale-label text-[10px] leading-tight">{label.th}</span>
                         </button>
                       ))}
                     </div>

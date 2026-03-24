@@ -18,12 +18,13 @@ const DOMAIN_LABELS: Record<string, { label: string; sublabel: string; descripti
   N: { label: 'ความไม่มั่นคงทางอารมณ์', sublabel: 'NEUROTICISM', description: 'ความวิตกกังวล ความอ่อนไหว และการรับมือกับความเครียด' },
 }
 
-const DOMAIN_COLORS: Record<string, string> = {
-  O: 'bg-[linear-gradient(90deg,#516673,#8ea0aa)]',
-  C: 'bg-[linear-gradient(90deg,#485f6d,#8a9da8)]',
-  E: 'bg-[linear-gradient(90deg,#49606d,#8d9fa9)]',
-  A: 'bg-[linear-gradient(90deg,#50656a,#90a2a7)]',
-  N: 'bg-[linear-gradient(90deg,#566570,#95a3ac)]',
+// hues: O=210, C=38, E=158, A=268, N=348
+const DOMAIN_COLORS: Record<string, { barColor: string; chipBg: string; chipText: string; hue: string }> = {
+  O: { barColor: 'hsl(210,55%,52%)', chipBg: 'hsl(210,60%,95%)', chipText: 'hsl(210,50%,36%)', hue: '210' },
+  C: { barColor: 'hsl(38,60%,50%)',  chipBg: 'hsl(38,70%,94%)',  chipText: 'hsl(38,55%,34%)',  hue: '38'  },
+  E: { barColor: 'hsl(158,50%,42%)', chipBg: 'hsl(158,60%,93%)', chipText: 'hsl(158,45%,30%)', hue: '158' },
+  A: { barColor: 'hsl(268,45%,55%)', chipBg: 'hsl(268,60%,95%)', chipText: 'hsl(268,40%,38%)', hue: '268' },
+  N: { barColor: 'hsl(348,52%,52%)', chipBg: 'hsl(348,60%,95%)', chipText: 'hsl(348,45%,36%)', hue: '348' },
 }
 
 const FACET_DOMAIN_ORDER = ['N', 'E', 'O', 'A', 'C'] as const
@@ -262,17 +263,19 @@ export default function Results300Page() {
                             <p className="mt-2 text-sm leading-[1.6] text-slate-600">{info.description}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-[#eef3f5] px-3 py-1 text-xs font-semibold text-[#47606d]">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="rounded-full px-3 py-1 text-xs font-semibold"
+                            style={{ background: DOMAIN_COLORS[factor].chipBg, color: DOMAIN_COLORS[factor].chipText }}>
                             {pctToLabel(pct)}
                           </span>
-                          <span className="text-lg font-semibold text-slate-800">{pct}%</span>
+                          <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-main)' }}>{pct}%</span>
                         </div>
                       </div>
-                      <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/80"
+                      <div className="mt-4 rounded-full overflow-hidden"
+                        style={{ height: '6px', background: 'rgba(255,255,255,0.7)' }}
                         role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                        <div className={`h-full rounded-full ${DOMAIN_COLORS[factor]} transition-all duration-700`}
-                          style={{ width: `${pct}%` }} />
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${pct}%`, background: DOMAIN_COLORS[factor].barColor, boxShadow: `0 0 8px ${DOMAIN_COLORS[factor].barColor}` }} />
                       </div>
                     </article>
                   )
@@ -310,10 +313,10 @@ export default function Results300Page() {
                                   <span className="text-xs text-slate-600">{name}</span>
                                   <span className="text-xs font-semibold text-slate-700">{Math.round(pct)}%</span>
                                 </div>
-                                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                                <div className="rounded-full overflow-hidden" style={{ height: '4px', background: 'rgba(69,98,118,0.10)' }}>
                                   <div
-                                    className={`h-full rounded-full ${DOMAIN_COLORS[domain]} transition-all duration-700`}
-                                    style={{ width: `${pct}%` }}
+                                    className="h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${pct}%`, background: DOMAIN_COLORS[domain].barColor }}
                                   />
                                 </div>
                               </div>
@@ -354,9 +357,9 @@ export default function Results300Page() {
                       <span className="font-medium text-slate-700">ความคืบหน้าโดยประมาณ</span>
                       <span className="text-slate-500">{displayProgress}%</span>
                     </div>
-                    <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200/80">
-                      <div className="h-full rounded-full bg-[linear-gradient(90deg,#284b5b,#8ba0ab)] transition-[width] duration-1000 ease-out"
-                        style={{ width: `${displayProgress}%` }} />
+                    <div className="mt-3 rounded-full overflow-hidden" style={{ height: '6px', background: 'rgba(69,98,118,0.12)' }}>
+                      <div className="h-full rounded-full transition-[width] duration-1000 ease-out"
+                        style={{ width: `${displayProgress}%`, background: 'var(--gradient-hero)', boxShadow: '0 0 8px rgba(69,98,118,0.4)' }} />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
                       <span>เวลาที่ผ่านไป {formatDuration(loadingSeconds)}</span>

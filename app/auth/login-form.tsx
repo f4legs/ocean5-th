@@ -13,7 +13,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleMagicLink(e: React.FormEvent) {
+  async function handleMagicLink(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError(null)
@@ -55,24 +55,37 @@ export default function LoginForm() {
   }
 
   return (
-    <main id="main" className="page-shell">
-      <div className="page-wrap max-w-md">
-        <div className="glass-panel rounded-[2rem] px-6 py-10 sm:px-10">
+    <main
+      id="main"
+      className="min-h-screen flex items-center justify-center p-5"
+      style={{ background: 'var(--page-base)' }}
+    >
+      <div className="w-full max-w-[420px]">
+        <div
+          className="rounded-[2rem] px-7 py-10 sm:px-10"
+          style={{ background: 'white', boxShadow: 'var(--shadow-card)' }}
+        >
           <span className="eyebrow">
             <span className="accent-dot" aria-hidden="true" />
             fars-ai // เข้าสู่ระบบ
           </span>
 
           <h1 className="display-title mt-5 text-3xl">เข้าสู่ระบบ</h1>
-          <p className="body-soft mt-3 text-sm leading-6">
+          <p className="mt-3 text-sm leading-6" style={{ color: 'var(--text-soft)' }}>
             สำหรับผู้ใช้ที่ต้องการทดสอบเชิงลึก 120/300 ข้อ
             และบันทึกผลการทดสอบในระยะยาว
           </p>
 
+          {/* Google sign-in */}
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="mt-8 w-full flex items-center justify-center gap-3 rounded-xl border border-[var(--line-strong)] bg-white px-5 py-3 text-sm font-medium text-[var(--text-main)] hover:bg-slate-50 disabled:opacity-50 transition-colors"
+            className="mt-8 w-full flex items-center justify-center gap-3 rounded-2xl px-5 py-3 text-sm font-medium transition-colors disabled:opacity-50"
+            style={{
+              background: 'var(--page-surface)',
+              color: 'var(--text-main)',
+              border: '1px solid var(--line-strong)',
+            }}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
               <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -84,23 +97,35 @@ export default function LoginForm() {
           </button>
 
           <div className="my-6 flex items-center gap-3">
-            <hr className="flex-1 border-[var(--line)]" />
-            <span className="text-xs text-[var(--text-faint)]">หรือ</span>
-            <hr className="flex-1 border-[var(--line)]" />
+            <hr className="flex-1" style={{ borderColor: 'var(--line)' }} />
+            <span className="text-xs" style={{ color: 'var(--text-faint)' }}>หรือ</span>
+            <hr className="flex-1" style={{ borderColor: 'var(--line)' }} />
           </div>
 
           {sent ? (
-            <div className="section-panel rounded-xl px-5 py-5 text-center">
-              <p className="text-2xl">📬</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--text-main)]">
+            <div
+              className="rounded-2xl px-5 py-6 text-center"
+              style={{ background: 'var(--page-surface)' }}
+            >
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3"
+                style={{ background: 'rgba(69,98,118,0.1)' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" style={{ color: 'var(--accent)' }}>
+                  <rect x="1.5" y="4" width="15" height="11" rx="2" stroke="currentColor" strokeWidth="1.4"/>
+                  <path d="M1.5 7l7.5 4.5L16.5 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-main)' }}>
                 ส่งลิงก์เข้าสู่ระบบแล้ว
               </p>
-              <p className="body-soft mt-1 text-sm">
+              <p className="mt-1.5 text-sm" style={{ color: 'var(--text-soft)' }}>
                 กรุณาตรวจสอบอีเมล <strong>{email}</strong> และคลิกลิงก์เพื่อเข้าสู่ระบบ
               </p>
               <button
                 onClick={() => setSent(false)}
-                className="mt-4 text-xs text-[var(--accent)] hover:underline"
+                className="mt-4 text-xs transition-opacity hover:opacity-70"
+                style={{ color: 'var(--accent)' }}
               >
                 ส่งใหม่อีกครั้ง
               </button>
@@ -108,7 +133,7 @@ export default function LoginForm() {
           ) : (
             <form onSubmit={handleMagicLink} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[var(--text-main)] mb-1.5">
+                <label htmlFor="email" className="field-label">
                   อีเมล
                 </label>
                 <input
@@ -118,12 +143,21 @@ export default function LoginForm() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full rounded-xl border border-[var(--line-strong)] bg-white px-4 py-2.5 text-sm text-[var(--text-main)] placeholder:text-[var(--text-faint)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent"
+                  className="field-input"
                 />
               </div>
 
               {error && (
-                <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+                <div
+                  className="flex items-start gap-2 rounded-xl px-3 py-3 text-sm"
+                  style={{ background: 'rgba(239,68,68,0.06)', color: '#b91c1c' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 mt-0.5" aria-hidden="true">
+                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3"/>
+                    <path d="M7 4.5V7.5M7 9v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                  </svg>
+                  {error}
+                </div>
               )}
 
               <button
@@ -136,7 +170,7 @@ export default function LoginForm() {
             </form>
           )}
 
-          <p className="mt-6 text-center text-xs text-[var(--text-faint)]">
+          <p className="mt-6 text-center text-xs" style={{ color: 'var(--text-faint)' }}>
             ไม่ต้องสร้างรหัสผ่าน · ลิงก์หมดอายุใน 1 ชั่วโมง
           </p>
         </div>
