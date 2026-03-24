@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabaseBrowser } from '@/lib/supabase-browser'
+import { createClient } from '@/utils/supabase/client'
 import { items300, items300new, getPageItems300, ITEMS_PER_PAGE_300, TOTAL_PAGES_300 } from '@/lib/items300'
 import { items120 } from '@/lib/items120'
 import { calcScores300 } from '@/lib/scoring120'
@@ -35,7 +35,8 @@ export default function Quiz300Page() {
 
   useEffect(() => {
     async function checkAccess() {
-      const { data: { session } } = await supabaseBrowser.auth.getSession()
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         router.replace('/auth?redirect=/quiz300')
         return
@@ -54,7 +55,7 @@ export default function Quiz300Page() {
       }
 
       // Must have completed 120-item test first
-      const { data: profile120 } = await supabaseBrowser
+      const { data: profile120 } = await supabase
         .from('ocean_profiles')
         .select('answers')
         .eq('owner_id', session.user.id)
@@ -73,7 +74,7 @@ export default function Quiz300Page() {
       setAuthChecked(true)
 
       // Load 300-item draft
-      const { data: draft } = await supabaseBrowser
+      const { data: draft } = await supabase
         .from('quiz_drafts')
         .select('answers, current_page, response_times, page_durations')
         .eq('user_id', session.user.id)
@@ -131,7 +132,8 @@ export default function Quiz300Page() {
     currentPage: number
   ) => {
     if (!userId) return
-    await supabaseBrowser.from('quiz_drafts').upsert({
+    const supabase = createClient()
+    await supabase.from('quiz_drafts').upsert({
       user_id: userId,
       test_type: '300',
       answers: currentAnswers,
@@ -168,8 +170,9 @@ export default function Quiz300Page() {
       const mergedAnswers: Record<number, number> = { ...answers120, ...answers }
       const scores = calcScores300(mergedAnswers, items300)
 
+      const supabase = createClient()
       // Save to Supabase
-      await supabaseBrowser.from('ocean_profiles').insert({
+      const { data: profileRow } = await supabase.from('ocean_profiles').insert({
         owner_id: userId,
         label: `ฉัน · 300 ข้อ · ${new Date().toLocaleDateString('th-TH')}`,
         source: 'test',
@@ -182,15 +185,19 @@ export default function Quiz300Page() {
         answers: mergedAnswers,
         metadata: { testId: 'ipip-neo-300-th', completedAt: new Date().toISOString() },
         session_id: crypto.randomUUID(),
-      })
+      }).select('id').single()
 
       // Clear draft
-      await supabaseBrowser.from('quiz_drafts')
+      await supabase.from('quiz_drafts')
         .delete()
         .eq('user_id', userId!)
         .eq('test_type', '300')
 
       sessionStorage.setItem('ocean_scores_300', JSON.stringify(scores))
+      if (profileRow?.id) {
+        sessionStorage.setItem('ocean_profile_id_300', profileRow.id)
+      }
+      
       router.push('/results300')
     }
   }

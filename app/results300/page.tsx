@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
-import { supabaseBrowser } from '@/lib/supabase-browser'
+import { createClient } from '@/utils/supabase/client'
 import { FACET_NAMES, FACET_DOMAIN, type FullScoreResult } from '@/lib/scoring120'
+import { STORAGE_KEYS } from '@/lib/storage-keys'
 
 const FACTOR_ORDER = ['O', 'C', 'E', 'A', 'N'] as const
 
@@ -49,6 +50,9 @@ export default function Results300Page() {
   const [fakeProgress, setFakeProgress] = useState(7)
   const [loadingSeconds, setLoadingSeconds] = useState(0)
   const activeRequestId = useRef(0)
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
+  const [inviteOwner, setInviteOwner] = useState<string | null>(null)
+  const [inviteShareStatus, setInviteShareStatus] = useState<'idle' | 'sharing' | 'done' | 'declined'>('idle')
 
   useEffect(() => {
     async function init() {
@@ -62,11 +66,20 @@ export default function Results300Page() {
         const parsed = JSON.parse(raw) as FullScoreResult
         setScores(parsed)
 
-        const { data: { session } } = await supabaseBrowser.auth.getSession()
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
         const token = session?.access_token ?? null
         setAccessToken(token)
 
-        streamReport(parsed, token)
+        const storedCode = localStorage.getItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
+        const storedOwner = localStorage.getItem(STORAGE_KEYS.FRIEND_INVITE_OWNER)
+        if (storedCode) {
+          setInviteCode(storedCode)
+          setInviteOwner(storedOwner)
+        }
+
+        const profileId = sessionStorage.getItem('ocean_profile_id_300')
+        streamReport(parsed, token, profileId)
       } catch {
         router.replace('/quiz300')
       }
@@ -93,7 +106,7 @@ export default function Results300Page() {
     return () => window.clearInterval(interval)
   }, [loading])
 
-  function streamReport(result: FullScoreResult, token: string | null) {
+  function streamReport(result: FullScoreResult, token: string | null, profileId: string | null = null) {
     const requestId = activeRequestId.current + 1
     activeRequestId.current = requestId
     setFakeProgress(7)
@@ -107,12 +120,13 @@ export default function Results300Page() {
           domainScores: result.domains.pct,
           facetScores: result.facets,
           testType: '300',
+          profileId: profileId ?? undefined,
         }
 
         const headers: Record<string, string> = { 'Content-Type': 'application/json' }
         if (token) headers['Authorization'] = `Bearer ${token}`
 
-        const res = await fetch('/api/interpret120', {
+        const res = await fetch('/api/interpret-deep', {
           method: 'POST',
           headers,
           body: JSON.stringify(body),
@@ -147,6 +161,7 @@ export default function Results300Page() {
 
         setReport(normalized)
         if (!normalized) setError('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+
       } catch (err) {
         if (requestId !== activeRequestId.current) return
         setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ')
@@ -156,6 +171,34 @@ export default function Results300Page() {
     }
 
     void run()
+  }
+
+  function handleInviteDecline() {
+    localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
+    localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_OWNER)
+    setInviteShareStatus('declined')
+  }
+
+  function handleInviteShare() {
+    if (!inviteCode || !scores) return
+    setInviteShareStatus('sharing')
+    void fetch('/api/profiles/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inviteCode,
+        scores: { pct: scores.domains.pct, facets: scores.facets },
+        testType: '300',
+      }),
+    }).then(res => {
+      if (res.ok) {
+        localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
+        localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_OWNER)
+        setInviteShareStatus('done')
+      } else {
+        setInviteShareStatus('idle')
+      }
+    }).catch(() => setInviteShareStatus('idle'))
   }
 
   if (!scores) {
@@ -293,7 +336,7 @@ export default function Results300Page() {
                 </div>
                 {report && !loading && (
                   <button
-                    onClick={() => scores && streamReport(scores, accessToken)}
+                    onClick={() => scores && streamReport(scores, accessToken, sessionStorage.getItem('ocean_profile_id_300'))}
                     className="secondary-button min-h-0 px-4 py-2 text-xs"
                   >
                     ประเมินใหม่
@@ -327,7 +370,7 @@ export default function Results300Page() {
                 <div className="mt-5 rounded-[1.5rem] border border-red-200 bg-red-50/90 p-5 text-sm text-red-700">
                   <p>{error}</p>
                   <button
-                    onClick={() => scores && streamReport(scores, accessToken)}
+                    onClick={() => scores && streamReport(scores, accessToken, sessionStorage.getItem('ocean_profile_id_300'))}
                     className="mt-4 inline-flex rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
                   >
                     ลองอีกครั้ง
@@ -358,6 +401,39 @@ export default function Results300Page() {
                 ))}
               </div>
             </div>
+
+            {inviteCode && inviteShareStatus !== 'declined' && (
+              <div className="section-panel rounded-[1.75rem] p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                  คำเชิญแบ่งปันผล
+                </p>
+                {inviteShareStatus === 'done' ? (
+                  <p className="mt-3 text-sm font-medium text-green-700">ส่งผลให้ {inviteOwner ?? 'ผู้เชิญ'} เรียบร้อยแล้ว</p>
+                ) : (
+                  <>
+                    <p className="mt-3 text-sm leading-[1.6] text-slate-700">
+                      <span className="font-medium">{inviteOwner ?? 'ผู้เชิญ'}</span> ต้องการรับผลคะแนน 30 ลักษณะย่อยของคุณเพื่อเปรียบเทียบบุคลิกภาพ
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-faint)]">คุณยังคงเห็นผลของตัวเองเสมอ · ผู้เชิญไม่เห็นคำตอบรายข้อ</p>
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={handleInviteShare}
+                        disabled={inviteShareStatus === 'sharing'}
+                        className="primary-button flex-1 justify-center text-sm"
+                      >
+                        {inviteShareStatus === 'sharing' ? 'กำลังส่ง...' : 'แบ่งปันผล'}
+                      </button>
+                      <button
+                        onClick={handleInviteDecline}
+                        className="secondary-button px-4 text-sm"
+                      >
+                        ไม่แบ่งปัน
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="section-panel rounded-[1.75rem] p-5 sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">การใช้งาน</p>

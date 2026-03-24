@@ -23,6 +23,7 @@ create table if not exists ocean_profiles (
   profile jsonb,               -- { age, sex, occupation, goal }
   metadata jsonb,              -- testId, itemSource, etc.
   session_id text,
+  ai_report text,              -- cached AI report from interpret-deep (saved after streaming)
   created_at timestamptz default now()
 );
 

@@ -311,7 +311,9 @@ export default function ResultsPage() {
   const [exportError, setExportError] = useState<string | null>(null)
   const [showRestartWarning, setShowRestartWarning] = useState(false)
   const activeRequestId = useRef(0)
-  const inviteSharedRef = useRef(false)
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
+  const [inviteOwner, setInviteOwner] = useState<string | null>(null)
+  const [inviteShareStatus, setInviteShareStatus] = useState<'idle' | 'sharing' | 'done' | 'declined'>('idle')
 
   const fetchReport = useCallback((
     scoresPct: ScoreResult['pct'],
@@ -382,26 +384,6 @@ export default function ResultsPage() {
           )
         }
 
-        // Auto-share with friend invite owner if this session came via an invite link
-        if (!inviteSharedRef.current) {
-          const inviteCode = localStorage.getItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
-          if (inviteCode && cacheContext) {
-            inviteSharedRef.current = true
-            const exportPayload = {
-              inviteCode,
-              scores: { pct: scoresPct },
-              profile: profileData,
-              sessionId: cacheContext.sessionId,
-            }
-            void fetch('/api/profiles/share', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(exportPayload),
-            }).then(res => {
-              if (res.ok) localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
-            }).catch(() => { /* silent — friend still sees their own results */ })
-          }
-        }
       } catch (err) {
         if (requestId !== activeRequestId.current) return
         setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ')
@@ -483,6 +465,13 @@ export default function ResultsPage() {
         setReport(cachedReport ?? '')
         setLoading(!cachedReport)
         setError(null)
+
+        const storedCode = localStorage.getItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
+        const storedOwner = localStorage.getItem(STORAGE_KEYS.FRIEND_INVITE_OWNER)
+        if (storedCode) {
+          setInviteCode(storedCode)
+          setInviteOwner(storedOwner)
+        }
 
         if (!cachedReport) {
           queueMicrotask(() => {
@@ -569,6 +558,35 @@ export default function ResultsPage() {
       if (err instanceof DOMException && err.name === 'AbortError') return
       setExportError('ไม่สามารถดาวน์โหลดไฟล์ JSON ได้ในขณะนี้')
     }
+  }
+
+  function handleInviteDecline() {
+    localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
+    localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_OWNER)
+    setInviteShareStatus('declined')
+  }
+
+  function handleInviteShare() {
+    if (!inviteCode || !scores || !session) return
+    setInviteShareStatus('sharing')
+    void fetch('/api/profiles/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inviteCode,
+        scores: { pct: scores.pct },
+        profile,
+        sessionId: session.sessionId,
+      }),
+    }).then(res => {
+      if (res.ok) {
+        localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
+        localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_OWNER)
+        setInviteShareStatus('done')
+      } else {
+        setInviteShareStatus('idle')
+      }
+    }).catch(() => setInviteShareStatus('idle'))
   }
 
   function handleDownloadPdf() {
@@ -838,6 +856,39 @@ export default function ResultsPage() {
                 ))}
               </div>
             </div>
+
+            {inviteCode && inviteShareStatus !== 'declined' && (
+              <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                  คำเชิญแบ่งปันผล
+                </p>
+                {inviteShareStatus === 'done' ? (
+                  <p className="mt-3 text-sm font-medium text-green-700">ส่งผลให้ {inviteOwner ?? 'ผู้เชิญ'} เรียบร้อยแล้ว</p>
+                ) : (
+                  <>
+                    <p className="mt-3 text-sm leading-[1.6] text-slate-700">
+                      <span className="font-medium">{inviteOwner ?? 'ผู้เชิญ'}</span> ต้องการรับผลคะแนน 5 มิติของคุณเพื่อเปรียบเทียบบุคลิกภาพ
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-faint)]">คุณยังคงเห็นผลของตัวเองเสมอ · ผู้เชิญไม่เห็นคำตอบรายข้อ</p>
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={handleInviteShare}
+                        disabled={inviteShareStatus === 'sharing'}
+                        className="primary-button flex-1 justify-center text-sm"
+                      >
+                        {inviteShareStatus === 'sharing' ? 'กำลังส่ง...' : 'แบ่งปันผล'}
+                      </button>
+                      <button
+                        onClick={handleInviteDecline}
+                        className="secondary-button px-4 text-sm"
+                      >
+                        ไม่แบ่งปัน
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">

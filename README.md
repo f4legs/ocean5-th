@@ -37,7 +37,7 @@ ocean5-th/
 │   ├── checkout/page.tsx           # Payment page (requires auth)
 │   │
 │   ├── quiz120/page.tsx            # 120-item deep quiz (10 items/page × 12 pages)
-│   ├── quiz300/page.tsx            # 300-item research quiz (+180 items, requires 120 first)
+│   ├── quiz300/page.tsx            # 300-item research quiz (+196 new items, requires 120 first)
 │   ├── results120/page.tsx         # 120 results: 30 facet bars + AI deep report
 │   ├── results300/page.tsx         # 300 results: same layout as results120
 │   │
@@ -51,12 +51,11 @@ ocean5-th/
 │
 ├── app/api/
 │   ├── interpret/route.ts          # POST: stream Gemini AI report for 50-item test
-│   ├── interpret120/route.ts       # POST: stream Gemini deep report for 120/300 test
+│   ├── interpret-deep/route.ts     # POST: stream Gemini deep report for 120/300 test
 │   ├── compare/route.ts            # POST: stream Gemini comparison of 2 profiles (auth required)
 │   ├── checkout/route.ts           # POST: create Stripe Checkout session (auth required)
 │   ├── checkout/verify/route.ts    # GET: check if user has paid
 │   ├── stripe-webhook/route.ts     # POST: receive Stripe events, mark payment as paid
-│   ├── profiles/route.ts           # GET/POST/PATCH/DELETE: manage ocean_profiles
 │   ├── profiles/upload/route.ts    # POST: import JSON export → create ocean_profile
 │   ├── profiles/share/route.ts     # POST: anonymous friend submits results via invite code
 │   ├── invite/route.ts             # POST: create friend invite link (auth required)
@@ -102,13 +101,13 @@ GEMINI_API_KEY=
 
 # Supabase (required for auth, profiles, payments, drafts)
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_KEY=           # Never expose — server-side only
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=   # New standard (replacing anon)
+SUPABASE_SECRET_KEY=                    # New standard (replacing service_role)
 
 # Stripe (required for payments)
 STRIPE_SECRET_KEY=
-STRIPE_PRICE_DEEP=              # Price ID from Stripe Dashboard (e.g. price_xxx)
-STRIPE_WEBHOOK_SECRET=          # From Stripe CLI or Dashboard webhook config
+STRIPE_PRICE_DEEP=price_1TEUyALavHJBcPPFMy24CVbu
+STRIPE_WEBHOOK_SECRET=                  # From Stripe CLI or Dashboard
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 
 # App URL (used in Stripe redirect URLs)
@@ -150,13 +149,15 @@ npx tsc --noEmit     # type check
 
 ### 4. Translate quiz items (120/300)
 
-The `lib/items120.ts` and `lib/items300.ts` files ship as empty arrays. Run the translation script once to populate them:
+`lib/items120.ts` ships as an empty array. Run the translation script once to populate it:
 
 ```bash
 npx tsx scripts/translate-items.ts
 ```
 
 This calls Gemini to translate all 120 IPIP-NEO-120 items from English to Thai and writes the result to `lib/items120.ts`. Takes ~2 minutes. The English source is in `scripts/raw-items-120.ts`.
+
+`lib/items300.ts` is pre-populated with all 300 Thai-translated items sourced directly from ipip.ori.org — no script needed.
 
 ---
 
@@ -168,7 +169,7 @@ This calls Gemini to translate all 120 IPIP-NEO-120 items from English to Thai a
 |------------|-------|---------|
 | IPIP-NEO-50-TH (free) | 50 | None — completely different items |
 | IPIP-NEO-120 (paid) | 120 | None with 50-item; 120 overlap with 300 |
-| IPIP-NEO-300 (research) | 300 | Includes all 120 items + 180 new |
+| IPIP-NEO-300 (research) | 300 | 104 items overlap with 120-item test (skipped in quiz) + 196 new |
 
 The 50-item free test and 120-item paid test are fully isolated — there is no pre-filling of answers between them.
 
@@ -193,10 +194,14 @@ Facet → domain mapping and all facet names live in `lib/scoring120.ts` (`FACET
 
 1. Paid user clicks "Invite Friend" → POST `/api/invite` → returns `https://your-domain.com/invite/[8-char-code]`
 2. Friend opens link → sees invite UI → `invite-client.tsx` stores code in `localStorage[FRIEND_INVITE_CODE]`
-3. Friend takes **free 50-item test** → sees own results normally (no extra UI, no forced login)
-4. After AI report finishes, `results/page.tsx` detects `FRIEND_INVITE_CODE` → silently POSTs to `/api/profiles/share`
-5. Server adds friend's 5 domain scores to paid user's `ocean_profiles` table (`source='shared'`)
-6. Invite code is cleared from localStorage. Friend never sees any comparison — only paid user can generate those.
+3. Friend takes a test and lands on a results page. All three results pages show a consent card when `FRIEND_INVITE_CODE` is present in localStorage:
+   - `results/page.tsx` — card shows after scores are loaded (works with cached reports too)
+   - `results120/page.tsx` — card shows after scores are loaded (will share domain + 30 facet scores)
+   - `results300/page.tsx` — same as results120
+4. Friend sees the card: **"[ownerName] ต้องการรับผลคะแนนของคุณ"** with **แบ่งปันผล** / **ไม่แบ่งปัน** buttons
+5. If friend clicks **แบ่งปันผล**: POSTs to `/api/profiles/share` with scores, facets (if available), and `testType`
+6. Server validates invite (not used, not expired) → inserts into owner's `ocean_profiles` (`source='shared'`)
+7. Invite code is marked `completed` (one-use). Friend never sees a comparison — only the invite owner can generate those.
 
 ### Payment gating
 
@@ -227,14 +232,13 @@ All tables have Row Level Security enabled. `ocean_profiles` and all other paid 
 | Route | Method | Auth | Purpose |
 |-------|--------|------|---------|
 | `/api/interpret` | POST | None | Stream AI report for 50-item test |
-| `/api/interpret120` | POST | None | Stream AI deep report for 120/300 test |
+| `/api/interpret-deep` | POST | None | Stream AI deep report for 120/300 test |
 | `/api/compare` | POST | Bearer | Stream AI comparison of 2 profiles |
 | `/api/checkout` | POST | Bearer | Create Stripe Checkout session |
 | `/api/checkout/verify` | GET | Bearer | Check payment status |
 | `/api/stripe-webhook` | POST | Stripe sig | Update payment to 'paid' on checkout.session.completed |
-| `/api/profiles` | GET/POST/PATCH/DELETE | Bearer | CRUD ocean_profiles |
 | `/api/profiles/upload` | POST | Bearer | Import OCEAN JSON export |
-| `/api/profiles/share` | POST | None | Friend submits results via invite code |
+| `/api/profiles/share` | POST | None | Friend submits results via invite code (50/120/300, with optional facets) |
 | `/api/invite` | POST | Bearer | Create friend invite link |
 | `/api/quiz-draft` | GET/POST | Bearer | Load/save quiz draft |
 | `/api/report-pdf` | POST | None | Generate PDF from results + report text |
@@ -250,7 +254,7 @@ All AI features use `gemini-3-flash-preview` with `ThinkingLevel.MEDIUM` from `@
 | Endpoint | Output | Length |
 |----------|--------|--------|
 | `/api/interpret` | Thai report, 5 sections | ~1,500–2,000 words |
-| `/api/interpret120` | Thai deep report, 5 sections, uses all 30 facets | ~2,000–2,500 words |
+| `/api/interpret-deep` | Thai deep report, 5 sections, uses all 30 facets | ~2,000–2,500 words |
 | `/api/compare` | Thai comparison, 5 sections, 4 methods | ~1,500–2,000 words |
 
 Reports stream via `ReadableStream` from the API route directly to the client. The client accumulates chunks and updates state incrementally.
@@ -271,7 +275,10 @@ PAID:
 
 FRIEND INVITE:
   /dashboard [create invite] → share link
-  → /invite/[code] → /quiz (free) → /results (auto-share in background)
+  → /invite/[code] → stores FRIEND_INVITE_CODE in localStorage
+  → friend takes any test (/quiz, /quiz120, or /quiz300)
+  → results page shows consent card: "แบ่งปันผล" / "ไม่แบ่งปัน"
+  → friend clicks to share (explicit consent)
   → friend's scores appear in inviter's dashboard automatically
 ```
 

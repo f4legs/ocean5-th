@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabaseBrowser } from '@/lib/supabase-browser'
+import { createClient } from '@/utils/supabase/client'
 import { items120, getPageItems120, ITEMS_PER_PAGE_120, TOTAL_PAGES_120 } from '@/lib/items120'
 import { calcScores120 } from '@/lib/scoring120'
 
@@ -35,7 +35,8 @@ export default function Quiz120Page() {
   // Auth + payment gate
   useEffect(() => {
     async function checkAccess() {
-      const { data: { session } } = await supabaseBrowser.auth.getSession()
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         router.replace('/auth?redirect=/quiz120')
         return
@@ -58,7 +59,7 @@ export default function Quiz120Page() {
       setAuthChecked(true)
 
       // Load draft from Supabase
-      const { data: draft } = await supabaseBrowser
+      const { data: draft } = await supabase
         .from('quiz_drafts')
         .select('answers, current_page, response_times, page_durations')
         .eq('user_id', session.user.id)
@@ -118,7 +119,8 @@ export default function Quiz120Page() {
     currentPage: number
   ) => {
     if (!userId) return
-    await supabaseBrowser.from('quiz_drafts').upsert({
+    const supabase = createClient()
+    await supabase.from('quiz_drafts').upsert({
       user_id: userId,
       test_type: '120',
       answers: currentAnswers,
@@ -156,8 +158,9 @@ export default function Quiz120Page() {
       // Completed — calculate scores and save result
       const scores = calcScores120(answers, items120)
 
+      const supabase = createClient()
       // Save to Supabase as ocean_profile
-      await supabaseBrowser.from('ocean_profiles').insert({
+      const { data: profileRow } = await supabase.from('ocean_profiles').insert({
         owner_id: userId,
         label: `ฉัน · 120 ข้อ · ${new Date().toLocaleDateString('th-TH')}`,
         source: 'test',
@@ -170,10 +173,10 @@ export default function Quiz120Page() {
         answers,
         metadata: { testId: 'ipip-neo-120-th', completedAt: new Date().toISOString() },
         session_id: crypto.randomUUID(),
-      })
+      }).select('id').single()
 
       // Clear draft
-      await supabaseBrowser.from('quiz_drafts')
+      await supabase.from('quiz_drafts')
         .delete()
         .eq('user_id', userId!)
         .eq('test_type', '120')
@@ -181,6 +184,9 @@ export default function Quiz120Page() {
       // Store scores in sessionStorage for results page
       sessionStorage.setItem('ocean_scores_120', JSON.stringify(scores))
       sessionStorage.setItem('ocean_answers_120', JSON.stringify(answers))
+      if (profileRow?.id) {
+        sessionStorage.setItem('ocean_profile_id_120', profileRow.id)
+      }
 
       router.push('/results120')
     }

@@ -13,7 +13,8 @@ export default function InviteClient({ code, ownerLabel }: Props) {
   // Store invite code so results page can auto-share after test completion
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FRIEND_INVITE_CODE, code)
-  }, [code])
+    localStorage.setItem(STORAGE_KEYS.FRIEND_INVITE_OWNER, ownerLabel)
+  }, [code, ownerLabel])
 
   return (
     <main className="page-shell">

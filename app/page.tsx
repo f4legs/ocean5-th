@@ -101,65 +101,63 @@ export default function Home() {
           <ReferenceNote className="mt-8" />
         </section>
 
-        {/* Pricing section */}
-        <section className="mt-6 section-panel rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10">
-          <div className="text-center">
-            <span className="eyebrow justify-center">
-              <span className="accent-dot" aria-hidden="true" />
-              เลือกระดับที่ต้องการ
-            </span>
-            <h2 className="display-title mt-5 text-3xl sm:text-4xl">แผนการทดสอบ</h2>
-            <p className="body-soft mt-3 text-base">ทดสอบฟรีหรืออัปเกรดเพื่อรายงานเชิงลึก</p>
-          </div>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            {/* Free tier */}
-            <div className="muted-panel rounded-[1.75rem] p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">ฟรี</p>
-              <p className="mt-3 text-3xl font-semibold text-[var(--text-main)]">฿0</p>
-              <p className="mt-1 text-sm text-[var(--text-soft)]">ไม่มีค่าใช้จ่าย</p>
-              <ul className="mt-5 space-y-2 text-sm text-[var(--text-soft)]">
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>50 ข้อ · IPIP-NEO</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>คะแนน 5 มิติหลัก</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>รายงาน AI สรุปภาพรวม</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>ดาวน์โหลด PDF / JSON</li>
-              </ul>
-              <Link href="/quiz" className="secondary-button mt-6 w-full justify-center text-sm">
-                เริ่มเลย →
-              </Link>
-            </div>
-
-            {/* Deep 120 */}
-            <div className="glass-panel rounded-[1.75rem] p-6 ring-1 ring-[var(--accent)] ring-offset-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">เชิงลึก</p>
-              <p className="mt-3 text-3xl font-semibold text-[var(--text-main)]">฿49</p>
-              <p className="mt-1 text-sm text-[var(--text-soft)]">ครั้งเดียว ไม่มีรายเดือน</p>
-              <ul className="mt-5 space-y-2 text-sm text-[var(--text-soft)]">
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>120 ข้อ · IPIP-NEO-120</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>คะแนน 30 ลักษณะย่อย (Facets)</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>รายงาน AI เชิงลึก 2,000 คำ</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>Dashboard · เปรียบเทียบกับผู้อื่น</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>ต่อยอดเป็น 300 ข้อได้</li>
-              </ul>
-              <Link href="/checkout" className="primary-button mt-6 w-full justify-center text-base">
-                ชำระเงิน ฿49 →
-              </Link>
-            </div>
-
-            {/* Research 300 */}
-            <div className="muted-panel rounded-[1.75rem] p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">ระดับวิจัย</p>
-              <p className="mt-3 text-3xl font-semibold text-[var(--text-main)]">฿49</p>
-              <p className="mt-1 text-sm text-[var(--text-soft)]">รวมอยู่ใน Deep 120</p>
-              <ul className="mt-5 space-y-2 text-sm text-[var(--text-soft)]">
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>300 ข้อ · IPIP-NEO-300</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>ทุกอย่างใน Deep 120</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>ความแม่นยำระดับวิจัย</li>
-                <li className="flex items-start gap-2"><span className="text-[var(--accent)] mt-0.5">✓</span>ใช้ในงานวิชาการได้</li>
-              </ul>
-              <Link href="/checkout" className="secondary-button mt-6 w-full justify-center text-sm">
-                เริ่มด้วย Deep 120 →
-              </Link>
+        {/* Upgrade section */}
+        <section className="mt-8">
+          <div className="glass-panel rounded-[2rem] overflow-hidden border border-[var(--line)] shadow-sm">
+            <div className="grid md:grid-cols-2">
+              <div className="p-8 sm:p-10 lg:p-12">
+                <span className="eyebrow">
+                  <span className="accent-dot" aria-hidden="true" />
+                  PREMIUM ANALYSIS
+                </span>
+                <h2 className="display-title mt-5 text-3xl sm:text-4xl">
+                  การวิเคราะห์เชิงลึกขั้นสูง
+                </h2>
+                <p className="body-soft mt-4 text-base leading-relaxed sm:text-lg">
+                  ยกระดับการรู้จักตนเองด้วยผลวิเคราะห์ 30 ลักษณะย่อย พร้อมฟีเจอร์เครื่องมือเปรียบเทียบและที่ปรึกษา AI ส่วนตัว
+                </p>
+                
+                <ul className="mt-8 space-y-4 text-sm sm:text-base text-[var(--text-soft)]">
+                  <li className="flex items-start gap-3">
+                    <span className="text-[var(--accent)] text-lg mt-[-2px]">✓</span>
+                    <span><strong>Deep Analysis</strong> - รายงาน AI สรุปเชิงลึกแบบละเอียด ครอบคลุมชุดคำถาม 120 ข้อ และ 300 ข้อระดับวิจัย</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-[var(--accent)] text-lg mt-[-2px]">✓</span>
+                    <span><strong>Comparing</strong> - Dashboard เปรียบเทียบผลลัพธ์กับเพื่อน หรือกลุ่มผู้ทดสอบเพื่อวิเคราะห์การเข้ากัน</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-[var(--accent)] text-lg mt-[-2px]">✓</span>
+                    <span><strong>Advance Feature</strong> - AI Impersonating Consult: โหมด AI จำลองบุคลิกภาพเพื่อให้คำปรึกษาเจาะจงตามผล OCEAN ของคุณ (Phase 3)</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="p-8 sm:p-10 lg:p-12 bg-slate-50/50 dark:bg-slate-900/20 flex flex-col justify-center items-center text-center border-t md:border-t-0 md:border-l border-[var(--line)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)] mb-4">
+                  ปลดล็อกครั้งเดียว
+                </p>
+                <div className="flex items-baseline justify-center gap-1 mt-2">
+                  <span className="text-3xl font-medium text-[var(--text-soft)]">฿</span>
+                  <span className="text-6xl sm:text-7xl font-semibold tracking-tight text-[var(--text-main)]">49</span>
+                </div>
+                <p className="mt-4 text-sm text-[var(--text-soft)]">
+                  ไม่มีค่าใช้จ่ายรายเดือน ใช้งานได้กับทุกข้อสอบทั้ง 120 และ 300 ข้อ
+                </p>
+                
+                <div className="w-full mt-8 space-y-3">
+                  <Link href="/checkout" className="primary-button w-full justify-center py-4 text-base sm:text-lg shadow-sm hover:shadow-md transition-all">
+                    เริ่มการวิเคราะห์เชิงลึก →
+                  </Link>
+                  <Link href="/auth" className="secondary-button w-full justify-center py-3 text-sm">
+                    เข้าสู่ระบบ (สำหรับสมาชิก)
+                  </Link>
+                </div>
+                
+                <p className="mt-6 text-xs text-[var(--text-soft)]">
+                  ชำระเงินปลอดภัยผ่าน Stripe รองรับ PromptPay / บัตรเครดิต
+                </p>
+              </div>
             </div>
           </div>
         </section>

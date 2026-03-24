@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/utils/supabase/admin'
 import { sharePayloadSchema } from '@/lib/schemas'
 
 export const dynamic = 'force-dynamic'
@@ -14,10 +14,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid payload', details: parsed.error.format() }, { status: 400 })
   }
 
-  const { inviteCode, scores: friendScores, profile, sessionId } = parsed.data
+  const { inviteCode, scores: friendScores, profile, sessionId, testType } = parsed.data
 
   // Look up invite
-  const { data: invite } = await supabase
+  const { data: invite } = await supabaseAdmin
     .from('friend_invites')
     .select('owner_id, status, expires_at')
     .eq('code', inviteCode)
@@ -36,12 +36,15 @@ export async function POST(req: NextRequest) {
   }
 
   // Insert profile into owner's library
-  const { error: insertError } = await supabase.from('ocean_profiles').insert({
+  const { error: insertError } = await supabaseAdmin.from('ocean_profiles').insert({
     owner_id: invite.owner_id,
     label: `เพื่อน · ${new Date().toLocaleDateString('th-TH')}`,
     source: 'shared',
-    test_type: '50',
-    scores: { pct: friendScores.pct },
+    test_type: testType ?? '50',
+    scores: {
+      pct: friendScores.pct,
+      ...(friendScores.facets ? { facets: friendScores.facets } : {}),
+    },
     answers: null,
     profile: profile ?? null,
     metadata: {
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Mark invite as completed — only after successful insert
-  await supabase
+  await supabaseAdmin
     .from('friend_invites')
     .update({ status: 'completed' })
     .eq('code', inviteCode)

@@ -40,13 +40,14 @@ export const uploadPayloadSchema = z.object({
   exportData: exportDataSchema,
 })
 
-// Share payload — matches exactly what results/page.tsx sends:
-// { inviteCode, scores: { pct }, profile, sessionId }
+// Share payload — sent by results/page.tsx (50-item) and results120/300 pages
 export const sharePayloadSchema = z.object({
   inviteCode: z.string().min(8).max(16),
   scores: z.object({
     pct: z.record(z.string(), pct),
+    facets: z.record(z.string(), z.object({ raw: z.float64(), pct })).optional(),
   }),
   profile: profileSchema,
   sessionId: z.uuid().optional(),
+  testType: z.enum(['50', '120', '300']).optional(),
 })

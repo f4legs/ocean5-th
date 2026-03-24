@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI, ThinkingLevel } from '@google/genai'
 import { createClient } from '@supabase/supabase-js'
 import { FACET_NAMES } from '@/lib/scoring120'
+import { supabaseAdmin as supabase } from '@/utils/supabase/admin'
 
 export const maxDuration = 300
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
   // Verify user via their access token
   const userClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
   )
   const { data: { user }, error: authError } = await userClient.auth.getUser()
@@ -176,12 +177,27 @@ ${methodLabel} — วิเคราะห์โดยละเอียดว�
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
+        let fullReport = ''
         try {
           for await (const chunk of await genStream) {
-            controller.enqueue(encoder.encode(chunk.text ?? ''))
+            const text = chunk.text ?? ''
+            fullReport += text
+            controller.enqueue(encoder.encode(text))
           }
         } finally {
           controller.close()
+          if (user?.id && fullReport.trim()) {
+            supabase
+              .from('comparisons')
+              .upsert({
+                user_id: user.id,
+                target_profile_id: profileBId,
+                ai_report: fullReport.trim()
+              }, { onConflict: 'user_id, target_profile_id' })
+              .then(({ error }) => {
+                if (error) console.error('Failed to save comparison report:', error)
+              })
+          }
         }
       },
     })

@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
-import { supabaseBrowser } from '@/lib/supabase-browser'
+import { createClient } from '@/utils/supabase/client'
 import { DIMENSION_INFO } from '@/lib/scoring'
 import { FACET_NAMES } from '@/lib/scoring120'
 
@@ -22,6 +22,7 @@ interface OceanProfile {
     facets?: Record<string, { raw: number; pct: number }>
   }
   created_at: string
+  ai_report?: string
 }
 
 const COMPARE_METHODS = [
@@ -42,7 +43,6 @@ const TIER_COLORS: Record<TestType, string> = {
 export default function DashboardPage() {
   const [profiles, setProfiles] = useState<OceanProfile[]>([])
   const [loading, setLoading] = useState(true)
-  const [paid, setPaid] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
 
@@ -57,7 +57,7 @@ export default function DashboardPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editLabel, setEditLabel] = useState('')
 
-  // Upload/invite state
+  const [activeView, setActiveView] = useState<'default' | 'compare' | 'group-compare'>('default')
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -65,23 +65,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { session } } = await supabaseBrowser.auth.getSession()
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
       setUserId(session.user.id)
       setAccessToken(session.access_token)
 
       // Check payment
-      const res = await fetch('/api/checkout/verify', {
+      await fetch('/api/checkout/verify', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
-      const payData = await res.json()
-      setPaid(payData.paid)
 
       // Load profiles
-      const { data } = await supabaseBrowser
+      const { data } = await supabase
         .from('ocean_profiles')
-        .select('id, label, source, test_type, scores, created_at')
+        .select('id, label, source, test_type, scores, created_at, ai_report')
         .eq('owner_id', session.user.id)
         .order('created_at', { ascending: false })
 
@@ -93,6 +92,25 @@ export default function DashboardPage() {
 
   const profileA = profiles.find(p => p.id === selectedA)
   const profileB = profiles.find(p => p.id === selectedB)
+
+  useEffect(() => {
+    async function loadComparison() {
+      if (profileA && profileB && userId && !comparing) {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('comparisons')
+          .select('ai_report')
+          .eq('user_id', userId)
+          .eq('target_profile_id', profileB.id)
+          .maybeSingle()
+        if (data?.ai_report) {
+          setAiReport(data.ai_report)
+        }
+      }
+    }
+    void loadComparison()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedA, selectedB, userId])
 
   function handleSelectProfile(id: string) {
     if (selectedA === id) {
@@ -153,7 +171,8 @@ export default function DashboardPage() {
 
   async function handleRename(id: string, newLabel: string) {
     if (!newLabel.trim()) return
-    await supabaseBrowser
+    const supabase = createClient()
+    await supabase
       .from('ocean_profiles')
       .update({ label: newLabel.trim() })
       .eq('id', id)
@@ -162,7 +181,8 @@ export default function DashboardPage() {
   }
 
   async function handleDelete(id: string) {
-    await supabaseBrowser.from('ocean_profiles').delete().eq('id', id)
+    const supabase = createClient()
+    await supabase.from('ocean_profiles').delete().eq('id', id)
     setProfiles(prev => prev.filter(p => p.id !== id))
     if (selectedA === id) setSelectedA(null)
     if (selectedB === id) setSelectedB(null)
@@ -181,8 +201,6 @@ export default function DashboardPage() {
       if (!json.scores?.pct || typeof json.testId !== 'string') {
         throw new Error('ไฟล์ JSON ไม่ถูกต้อง — ต้องเป็นผลการทดสอบ OCEAN ที่ส่งออกจากระบบนี้')
       }
-
-      const testType: TestType = json.testId.includes('300') ? '300' : json.testId.includes('120') ? '120' : '50'
 
       const res = await fetch('/api/profiles/upload', {
         method: 'POST',
@@ -224,7 +242,8 @@ export default function DashboardPage() {
   }
 
   async function handleSignOut() {
-    await supabaseBrowser.auth.signOut()
+    const supabase = createClient()
+    await supabase.auth.signOut()
     window.location.href = '/'
   }
 
@@ -244,92 +263,67 @@ export default function DashboardPage() {
             <div className="glass-panel rounded-[2rem] px-5 py-6">
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
-                dashboard
+                OCEAN DASHBOARD
               </span>
-              <h1 className="section-title mt-4 text-2xl">โปรไฟล์ของฉัน</h1>
+              
+              <nav className="mt-6 flex flex-col gap-1">
+                <button 
+                  onClick={() => setActiveView('default')}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm ${activeView === 'default' ? 'bg-slate-100 text-slate-900 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <span className="text-lg">🏠</span>
+                  <span>หน้าแรก (Overview)</span>
+                </button>
 
-              {loading ? (
-                <p className="body-soft mt-4 text-sm">กำลังโหลด...</p>
-              ) : (
-                <div className="mt-5 space-y-5">
-                  {/* My Tests */}
-                  {myTests.length > 0 && (
-                    <ProfileGroup
-                      title="การทดสอบของฉัน"
-                      profiles={myTests}
-                      selectedA={selectedA}
-                      selectedB={selectedB}
-                      editingId={editingId}
-                      editLabel={editLabel}
-                      onSelect={handleSelectProfile}
-                      onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
-                      onSaveEdit={handleRename}
-                      onEditChange={setEditLabel}
-                      onDelete={handleDelete}
-                    />
-                  )}
+                <button 
+                  onClick={() => setActiveView('compare')}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm ${activeView === 'compare' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <span className="text-lg">📊</span>
+                  <span>เปรียบเทียบ (Compare)</span>
+                </button>
 
-                  {/* Uploaded */}
-                  {uploaded.length > 0 && (
-                    <ProfileGroup
-                      title="อัปโหลด"
-                      profiles={uploaded}
-                      selectedA={selectedA}
-                      selectedB={selectedB}
-                      editingId={editingId}
-                      editLabel={editLabel}
-                      onSelect={handleSelectProfile}
-                      onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
-                      onSaveEdit={handleRename}
-                      onEditChange={setEditLabel}
-                      onDelete={handleDelete}
-                    />
-                  )}
+                <button 
+                  onClick={() => setActiveView('group-compare')}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm ${activeView === 'group-compare' ? 'bg-purple-50 text-purple-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  <span className="text-lg">👥</span>
+                  <span>กลุ่ม (Group Dynamics)</span>
+                </button>
 
-                  {/* Shared */}
-                  {shared.length > 0 && (
-                    <ProfileGroup
-                      title="เพื่อนที่แชร์มา"
-                      profiles={shared}
-                      selectedA={selectedA}
-                      selectedB={selectedB}
-                      editingId={editingId}
-                      editLabel={editLabel}
-                      onSelect={handleSelectProfile}
-                      onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
-                      onSaveEdit={handleRename}
-                      onEditChange={setEditLabel}
-                      onDelete={handleDelete}
-                    />
-                  )}
+                <hr className="my-2 border-[var(--line)]" />
 
-                  {profiles.length === 0 && (
-                    <p className="body-soft text-sm">ยังไม่มีโปรไฟล์ เริ่มต้นด้วยการทดสอบหรืออัปโหลดผลที่มีอยู่</p>
-                  )}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="mt-6 space-y-2 border-t border-[var(--line)] pt-5">
-                {/* Upload JSON */}
-                <label className="secondary-button w-full cursor-pointer justify-center text-sm">
-                  <span>+ อัปโหลด JSON</span>
+                <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">TOOLS</div>
+                
+                <label className="flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors text-sm text-slate-600">
+                  <span className="text-lg">📂</span>
+                  <span>อัปโหลด JSON (PDF เร็วๆ นี้)</span>
                   <input ref={fileInputRef} type="file" accept=".json" className="sr-only" onChange={handleUpload} />
                 </label>
-                {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
 
-                {/* Invite friend */}
-                <button onClick={handleInvite} disabled={inviteLoading} className="secondary-button w-full justify-center text-sm">
-                  {inviteLoading ? 'กำลังสร้าง...' : '+ เชิญเพื่อนทดสอบ'}
+                <button 
+                  onClick={handleInvite}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors text-sm text-slate-600"
+                >
+                  <span className="text-lg">✉️</span>
+                  <span>{inviteLoading ? 'กำลังสร้าง...' : 'เชิญเพื่อนทดสอบ'}</span>
                 </button>
+
                 {inviteLink && (
-                  <div className="section-panel rounded-xl px-3 py-3">
-                    <p className="text-xs text-[var(--text-soft)] mb-1">คัดลอกลิงก์นี้</p>
-                    <div className="flex gap-2">
-                      <input readOnly value={inviteLink} className="flex-1 rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-xs" />
-                      <button
-                        onClick={() => navigator.clipboard.writeText(inviteLink)}
-                        className="rounded-lg bg-[var(--accent)] px-2 py-1 text-xs text-white"
+                  <div className="mx-4 mt-2 p-3 rounded-xl bg-green-50 border border-green-100 animate-in fade-in slide-in-from-top-1">
+                    <p className="text-[10px] font-bold text-green-700 uppercase mb-1">ลิ้งก์คำเชิญ</p>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        readOnly 
+                        value={inviteLink} 
+                        className="flex-1 bg-white border border-green-200 rounded px-2 py-1 text-[10px] text-green-800 focus:outline-none"
+                      />
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(inviteLink)
+                          alert('คัดลอกลงคลิปบอร์ดแล้ว!')
+                        }}
+                        className="text-[10px] bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 transition-colors"
                       >
                         คัดลอก
                       </button>
@@ -337,159 +331,379 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* Paid quiz links */}
-                {paid ? (
-                  <div className="space-y-2">
-                    <Link href="/quiz120" className="secondary-button w-full justify-center text-sm">
-                      + ทดสอบ 120 ข้อ
-                    </Link>
-                    <Link href="/quiz300" className="secondary-button w-full justify-center text-sm">
-                      + ต่อยอด 300 ข้อ
-                    </Link>
+                {uploadError && (
+                  <div className="mx-4 mt-2 p-3 rounded-xl bg-red-50 border border-red-100 animate-in fade-in slide-in-from-top-1">
+                    <p className="text-[10px] font-bold text-red-700 uppercase mb-1">เกิดข้อผิดพลาด</p>
+                    <p className="text-[10px] text-red-600 leading-tight">{uploadError}</p>
+                    <button 
+                      onClick={() => setUploadError(null)}
+                      className="mt-1 text-[10px] text-red-400 hover:text-red-700 underline"
+                    >
+                      ปิด
+                    </button>
                   </div>
-                ) : (
-                  <Link href="/checkout" className="primary-button w-full justify-center text-sm">
-                    ซื้อแผน Deep ฿49 →
-                  </Link>
                 )}
 
-                <button onClick={handleSignOut} className="w-full text-center text-xs text-[var(--text-faint)] hover:text-[var(--text-soft)] mt-2">
-                  ออกจากระบบ
+                <Link 
+                  href="/quiz120"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors text-sm text-slate-600"
+                >
+                  <span className="text-lg">📝</span>
+                  <span>ทดสอบ 120/300 ข้อ</span>
+                </Link>
+
+                <button 
+                  disabled
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl opacity-40 cursor-not-allowed text-sm text-slate-600"
+                >
+                  <span className="text-lg">🤖</span>
+                  <span>AI Consult (Soon)</span>
                 </button>
+
+                <button 
+                  disabled
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl opacity-40 cursor-not-allowed text-sm text-slate-600"
+                >
+                  <span className="text-lg">🪲</span>
+                  <span>แจ้งบั๊ก (Report Bug)</span>
+                </button>
+
+                <hr className="my-2 border-[var(--line)]" />
+
+                <button 
+                  onClick={handleSignOut}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors text-sm text-slate-600"
+                >
+                  <span className="text-lg">🚪</span>
+                  <span>ออกจากระบบ</span>
+                </button>
+              </nav>
+
+              <div className="mt-8">
+                <p className="px-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">โปรไฟล์ของคุณ ({profiles.length})</p>
+                {loading ? (
+                  <p className="px-4 body-soft text-xs italic">กำลังโหลด...</p>
+                ) : (
+                  <div className="space-y-4">
+                    {myTests.length > 0 && (
+                      <ProfileGroup
+                        title={SOURCE_LABELS.test}
+                        profiles={myTests}
+                        selectedA={selectedA}
+                        selectedB={selectedB}
+                        editingId={editingId}
+                        editLabel={editLabel}
+                        onSelect={handleSelectProfile}
+                        onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
+                        onSaveEdit={handleRename}
+                        onEditChange={setEditLabel}
+                        onDelete={handleDelete}
+                      />
+                    )}
+                    {uploaded.length > 0 && (
+                      <ProfileGroup
+                        title={SOURCE_LABELS.upload}
+                        profiles={uploaded}
+                        selectedA={selectedA}
+                        selectedB={selectedB}
+                        editingId={editingId}
+                        editLabel={editLabel}
+                        onSelect={handleSelectProfile}
+                        onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
+                        onSaveEdit={handleRename}
+                        onEditChange={setEditLabel}
+                        onDelete={handleDelete}
+                      />
+                    )}
+                    {shared.length > 0 && (
+                      <ProfileGroup
+                        title={SOURCE_LABELS.shared}
+                        profiles={shared}
+                        selectedA={selectedA}
+                        selectedB={selectedB}
+                        editingId={editingId}
+                        editLabel={editLabel}
+                        onSelect={handleSelectProfile}
+                        onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
+                        onSaveEdit={handleRename}
+                        onEditChange={setEditLabel}
+                        onDelete={handleDelete}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </aside>
 
           {/* ── Right Panel ──────────────────────────────────────── */}
           <div className="space-y-5">
-            {/* Selection + Compare Controls */}
-            <div className="glass-panel rounded-[2rem] px-6 py-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <ProfileSelector
-                  label="โปรไฟล์ A"
-                  profile={profileA}
-                  color="blue"
-                  onClear={() => setSelectedA(null)}
-                />
-                <span className="text-[var(--text-faint)] text-lg">vs</span>
-                <ProfileSelector
-                  label="โปรไฟล์ B"
-                  profile={profileB}
-                  color="purple"
-                  onClear={() => setSelectedB(null)}
-                />
+            {activeView === 'default' && (
+              <div className="glass-panel rounded-[2rem] px-8 py-10">
+                <span className="eyebrow">
+                  <span className="accent-dot" aria-hidden="true" />
+                  guidelines & overview
+                </span>
+                <h2 className="display-title mt-6 text-3xl">ยินดีต้อนรับสู่ OCEAN Dashboard</h2>
+                <p className="mt-2 text-slate-500 text-sm">เครื่องมือวิเคราะห์บุคลิกภาพระดับสากล เพื่อความเข้าใจตนเองและทีมงาน</p>
+                
+                <div className="mt-10 grid gap-8 sm:grid-cols-2">
+                  <section className="space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-xl">🧘‍♂️</div>
+                    <h3 className="text-lg font-semibold text-slate-800">Self-Understanding</h3>
+                    <p className="text-sm leading-relaxed text-slate-600">
+                      OCEAN helps you understand your natural tendencies in five key areas: Openness, Conscientiousness, Extraversion, Agreeableness, and Neuroticism.
+                    </p>
+                  </section>
 
-                <select
-                  value={compareMethod}
-                  onChange={e => { setCompareMethod(e.target.value); setAiReport('') }}
-                  className="ml-auto rounded-xl border border-[var(--line-strong)] bg-white px-3 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                >
-                  {COMPARE_METHODS.map(m => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
+                  <section className="space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-xl">🤝</div>
+                    <h3 className="text-lg font-semibold text-slate-800">Team Dynamics</h3>
+                    <p className="text-sm leading-relaxed text-slate-600">
+                      Compare your profile with others to understand potential synergies and friction points in a professional or personal setting.
+                    </p>
+                  </section>
 
-                <button
-                  onClick={handleCompare}
-                  disabled={!profileA || !profileB || comparing}
-                  className="primary-button"
-                >
-                  {comparing ? 'กำลังวิเคราะห์...' : 'เปรียบเทียบ'}
-                </button>
-              </div>
+                  <section className="space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-xl">📈</div>
+                    <h3 className="text-lg font-semibold text-slate-800">Personal Growth</h3>
+                    <p className="text-sm leading-relaxed text-slate-600">
+                      Use the 120 and 300-item tests for research-grade accuracy and deep AI-driven reports that suggest areas for development.
+                    </p>
+                  </section>
 
-              {!profileA && !profileB && (
-                <p className="body-soft mt-4 text-sm">เลือกโปรไฟล์ 2 คนจากแถบซ้ายเพื่อเปรียบเทียบ</p>
-              )}
-            </div>
-
-            {/* Score bars */}
-            {(profileA || profileB) && (
-              <div className="glass-panel rounded-[2rem] px-6 py-6">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
-                  คะแนน 5 มิติหลัก
-                </h2>
-                <div className="mt-5 space-y-4">
-                  {FACTOR_ORDER.map(factor => {
-                    const info = DIMENSION_INFO[factor]
-                    const aScore = profileA?.scores.pct[factor]
-                    const bScore = profileB?.scores.pct[factor]
-                    const delta = aScore !== undefined && bScore !== undefined ? aScore - bScore : null
-
-                    return (
-                      <div key={factor}>
-                        <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="font-medium text-[var(--text-main)]">{info.label}</span>
-                          <div className="flex gap-3">
-                            {aScore !== undefined && <span className="text-blue-600 font-semibold">{Math.round(aScore)}%</span>}
-                            {bScore !== undefined && <span className="text-purple-600 font-semibold">{Math.round(bScore)}%</span>}
-                            {delta !== null && (
-                              <span className={`font-semibold ${Math.abs(delta) >= 20 ? 'text-red-500' : 'text-[var(--text-faint)]'}`}>
-                                Δ{delta > 0 ? '+' : ''}{Math.round(delta)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden">
-                          {aScore !== undefined && (
-                            <div
-                              className="absolute top-0 left-0 h-1.5 rounded-full bg-blue-400"
-                              style={{ width: `${aScore}%` }}
-                            />
-                          )}
-                          {bScore !== undefined && (
-                            <div
-                              className="absolute bottom-0 left-0 h-1.5 rounded-full bg-purple-400"
-                              style={{ width: `${bScore}%` }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
+                  <section className="space-y-4">
+                    <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-xl">💡</div>
+                    <h3 className="text-lg font-semibold text-slate-800">Why Use OCEAN?</h3>
+                    <p className="text-sm leading-relaxed text-slate-600">
+                      It is the most scientifically validated framework for personality psychology, providing a common language for human behavior.
+                    </p>
+                  </section>
                 </div>
 
-                {/* Facets — only if both profiles have facet data */}
-                {profileA?.scores.facets && profileB?.scores.facets && (
-                  <details className="mt-6">
-                    <summary className="cursor-pointer text-xs font-semibold text-[var(--accent)] hover:underline">
-                      แสดง 30 ลักษณะย่อย (Facets)
-                    </summary>
-                    <div className="mt-4 space-y-2">
-                      {Object.entries(FACET_NAMES).map(([code, name]) => {
-                        const aFacet = profileA.scores.facets?.[code]
-                        const bFacet = profileB?.scores.facets?.[code]
+                <div className="mt-12 p-6 rounded-[1.5rem] bg-slate-50 border border-slate-100">
+                  <h4 className="text-sm font-bold text-slate-800 mb-2">Getting Started</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    Select <strong className="text-slate-900">Comparing OCEAN</strong> from the sidebar and pick two profiles from your list to start a comparison. If you don&apos;t have enough profiles, use the <strong className="text-slate-900">Send Invite</strong> tool to invite a friend.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {activeView === 'compare' && (
+              <>
+                <div className="glass-panel rounded-[2rem] px-6 py-6">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <ProfileSelector
+                      label="Profile A"
+                      profile={profileA}
+                      color="blue"
+                      onClear={() => setSelectedA(null)}
+                    />
+                    <span className="text-[var(--text-faint)] text-lg">vs</span>
+                    <ProfileSelector
+                      label="Profile B"
+                      profile={profileB}
+                      color="purple"
+                      onClear={() => setSelectedB(null)}
+                    />
+
+                    <select
+                      value={compareMethod}
+                      onChange={e => { setCompareMethod(e.target.value); setAiReport('') }}
+                      className="ml-auto rounded-xl border border-[var(--line-strong)] bg-white px-3 py-2 text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    >
+                      {COMPARE_METHODS.map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+
+                    <button
+                      onClick={handleCompare}
+                      disabled={!profileA || !profileB || comparing}
+                      className="primary-button pr-6 pl-6"
+                    >
+                      {comparing ? 'Analyzing...' : 'Compare'}
+                    </button>
+                  </div>
+
+                  {!profileA && !profileB && (
+                    <p className="body-soft mt-4 text-sm">Select 2 profiles from your list below to begin comparison. If you don&apos;t have any, you can take a test or invite a friend.</p>
+                  )}
+                </div>
+
+                {/* Score bars & Reports */}
+                {(profileA || profileB) && (
+                  <div className="glass-panel rounded-[2rem] px-6 py-6">
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)]">
+                      Five Factor Scores
+                    </h2>
+                    <div className="mt-5 space-y-4">
+                      {FACTOR_ORDER.map(factor => {
+                        const info = DIMENSION_INFO[factor]
+                        const aScore = profileA?.scores.pct[factor]
+                        const bScore = profileB?.scores.pct[factor]
+                        const delta = aScore !== undefined && bScore !== undefined ? aScore - bScore : null
+
                         return (
-                          <div key={code} className="flex items-center gap-3 text-xs">
-                            <span className="w-28 shrink-0 text-[var(--text-soft)]">{name}</span>
-                            {aFacet && <span className="w-10 text-right text-blue-600 font-medium">{Math.round(aFacet.pct)}%</span>}
-                            {bFacet && <span className="w-10 text-right text-purple-600 font-medium">{Math.round(bFacet.pct)}%</span>}
+                          <div key={factor}>
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="font-medium text-[var(--text-main)]">{info.label}</span>
+                              <div className="flex gap-3">
+                                {aScore !== undefined && <span className="text-blue-600 font-semibold">{Math.round(aScore)}%</span>}
+                                {bScore !== undefined && <span className="text-purple-600 font-semibold">{Math.round(bScore)}%</span>}
+                                {delta !== null && (
+                                  <span className={`font-semibold ${Math.abs(delta) >= 20 ? 'text-red-500' : 'text-[var(--text-faint)]'}`}>
+                                    Δ{delta > 0 ? '+' : ''}{Math.round(delta)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden">
+                              {aScore !== undefined && (
+                                <div
+                                  className="absolute top-0 left-0 h-1.5 rounded-full bg-blue-400"
+                                  style={{ width: `${aScore}%` }}
+                                />
+                              )}
+                              {bScore !== undefined && (
+                                <div
+                                  className="absolute bottom-0 left-0 h-1.5 rounded-full bg-purple-400"
+                                  style={{ width: `${bScore}%` }}
+                                />
+                              )}
+                            </div>
                           </div>
                         )
                       })}
                     </div>
-                  </details>
-                )}
-              </div>
-            )}
 
-            {/* AI Comparison Report */}
-            {(comparing || aiReport) && (
-              <div className="glass-panel rounded-[2rem] px-6 py-6">
-                <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)] mb-4">
-                  รายงาน AI
-                </h2>
-                {comparing && !aiReport && (
-                  <p className="body-soft text-sm animate-pulse">กำลังวิเคราะห์...</p>
-                )}
-                {aiReport && (
-                  <div className="prose prose-sm max-w-none text-[var(--text-main)]">
-                    <ReactMarkdown>{aiReport}</ReactMarkdown>
+                    {/* Facets — only if both profiles have facet data */}
+                    {profileA?.scores.facets && profileB?.scores.facets && (
+                      <details className="mt-6">
+                        <summary className="cursor-pointer text-xs font-semibold text-[var(--accent)] hover:underline">
+                          Show 30 Facets
+                        </summary>
+                        <div className="mt-4 space-y-2">
+                          {Object.entries(FACET_NAMES).map(([code, name]) => {
+                            const aFacet = profileA.scores.facets?.[code]
+                            const bFacet = profileB?.scores.facets?.[code]
+                            return (
+                              <div key={code} className="flex items-center gap-3 text-xs">
+                                <span className="w-28 shrink-0 text-[var(--text-soft)]">{name}</span>
+                                {aFacet && <span className="w-10 text-right text-blue-600 font-medium">{Math.round(aFacet.pct)}%</span>}
+                                {bFacet && <span className="w-10 text-right text-purple-600 font-medium">{Math.round(bFacet.pct)}%</span>}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </details>
+                    )}
                   </div>
                 )}
+
+                {profileA && !profileB && profileA.ai_report && (
+                  <div className="glass-panel rounded-[2rem] px-6 py-6 mt-6">
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)] mb-4">Deep AI Report</h2>
+                    <div className="prose prose-sm max-w-none text-[var(--text-main)]">
+                      <ReactMarkdown>{profileA.ai_report}</ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+
+                {profileA && profileB && (comparing || aiReport) && (
+                  <div className="glass-panel rounded-[2rem] px-6 py-6 mt-6">
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--accent-strong)] mb-4">AI Comparison Report</h2>
+                    {comparing && !aiReport && <p className="body-soft text-sm animate-pulse">Analyzing...</p>}
+                    {aiReport && (
+                      <div className="prose prose-sm max-w-none text-[var(--text-main)]">
+                        <ReactMarkdown>{aiReport}</ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeView === 'group-compare' && (
+              <div className="glass-panel rounded-[2rem] px-8 py-10 text-center relative overflow-hidden">
+                <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center text-3xl mx-auto mb-6">👥</div>
+                <h2 className="text-2xl font-semibold text-slate-800">Group Dynamics Analysis</h2>
+                <p className="mt-4 text-slate-600 max-w-md mx-auto leading-relaxed text-sm">
+                  Analyze how multiple people interact within a group. Identify collective strengths, potential blind spots, and cultural alignment.
+                </p>
+
+                {/* Mockup visualization */}
+                <div className="mt-10 max-w-lg mx-auto p-6 rounded-[2rem] bg-slate-50 border border-slate-100 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 opacity-50" />
+                  <div className="relative z-10 text-left">
+                    <div className="flex justify-between items-end mb-8">
+                      <div className="text-left">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preview: Engineering Team</p>
+                        <h4 className="text-lg font-bold text-slate-800 tracking-tight">Team Balance Index</h4>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-black text-purple-600">84%</span>
+                        <p className="text-[10px] font-medium text-slate-500 uppercase">Alignment</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                          <span>Execution Strength</span>
+                          <span>High</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                          <div className="h-full w-[90%] bg-blue-500 rounded-full" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                          <span>Innovation Pivot</span>
+                          <span>Moderate</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                          <div className="h-full w-[65%] bg-purple-500 rounded-full" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
+                          <span>Social Cohesion</span>
+                          <span>Very High</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                          <div className="h-full w-[95%] bg-green-500 rounded-full" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-8 pt-6 border-t border-slate-200/60 flex -space-x-2">
+                       {[1,2,3,4,5].map(i => (
+                         <div key={i} className="w-8 h-8 rounded-full bg-white border-2 border-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                           {String.fromCharCode(64 + i)}
+                         </div>
+                       ))}
+                       <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold">
+                         +3
+                       </div>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xl">
+                      Coming Soon in Phase 3
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-8 text-xs text-slate-400 font-medium italic">
+                  * ฟีเจอร์วิเคราะห์กลุ่มจะเปิดให้ใช้งานเร็ว ๆ นี้ พร้อมรวบรวมผลลัพธ์จากคนในทีมได้ไม่จำกัด
+                </p>
               </div>
             )}
           </div>
+
         </div>
       </div>
     </main>

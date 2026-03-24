@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
 import { stripe } from '@/lib/stripe'
-import { supabase } from '@/lib/supabase-server'
+import { supabaseAdmin as supabase } from '@/utils/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,21 +23,39 @@ export async function POST(req: NextRequest) {
   }
 
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object
+    const session = event.data.object as Stripe.Checkout.Session
     const stripeSessionId = session.id
+    const userId = session.metadata?.user_id
 
-    // Idempotent update — only update if currently pending
+    if (!userId) {
+      console.error('No user_id found in session metadata')
+      return NextResponse.json({ error: 'Missing metadata' }, { status: 400 })
+    }
+
+    // 1. Try to find the existing pending row
     const { data: existing } = await supabase
       .from('payments')
-      .select('stripe_status')
+      .select('id, stripe_status')
       .eq('stripe_session_id', stripeSessionId)
       .maybeSingle()
 
-    if (existing && existing.stripe_status !== 'paid') {
-      await supabase
-        .from('payments')
-        .update({ stripe_status: 'paid' })
-        .eq('stripe_session_id', stripeSessionId)
+    if (existing) {
+      // Update existing row
+      if (existing.stripe_status !== 'paid') {
+        await supabase
+          .from('payments')
+          .update({ stripe_status: 'paid' })
+          .eq('id', existing.id)
+      }
+    } else {
+      // 2. Fallback: Create the row if it doesn't exist (e.g. if the initial insert failed or was skipped)
+      // This makes the fulfillment more robust as recommended by Stripe Quickstart
+      await supabase.from('payments').insert({
+        user_id: userId,
+        stripe_session_id: stripeSessionId,
+        stripe_status: 'paid',
+        amount: session.amount_total ?? 4900,
+      })
     }
   }
 

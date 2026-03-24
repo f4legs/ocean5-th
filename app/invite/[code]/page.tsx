@@ -1,7 +1,6 @@
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import InviteClient from './invite-client'
-import { supabase } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/utils/supabase/admin'
 
 interface Props {
   params: Promise<{ code: string }>
@@ -10,7 +9,7 @@ interface Props {
 export default async function InvitePage({ params }: Props) {
   const { code } = await params
 
-  const { data: invite } = await supabase
+  const { data: invite } = await supabaseAdmin
     .from('friend_invites')
     .select('code, owner_label, status, expires_at')
     .eq('code', code)

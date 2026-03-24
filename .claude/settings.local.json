@@ -25,7 +25,11 @@
       "Read(//c/Users/F/**)",
       "Bash(chub get next/next --lang js -o next-docs.md)",
       "Bash(npx tsc --noEmit)",
-      "Bash(node -e \"const s = require\\(''stripe''\\); console.log\\(s.LATEST_API_VERSION\\)\")"
+      "Bash(node -e \"const s = require\\(''stripe''\\); console.log\\(s.LATEST_API_VERSION\\)\")",
+      "Bash(mkdir -p \"c:/Users/F/Project Lighthouse/ocean5-th/app/api/interpret-deep\")",
+      "Bash(cp \"c:/Users/F/Project Lighthouse/ocean5-th/app/api/interpret120/route.ts\" \"c:/Users/F/Project Lighthouse/ocean5-th/app/api/interpret-deep/route.ts\")",
+      "Bash(rm \"c:/Users/F/Project Lighthouse/ocean5-th/app/api/interpret120/route.ts\")",
+      "Bash(rmdir \"c:/Users/F/Project Lighthouse/ocean5-th/app/api/interpret120\")"
     ]
   }
 }

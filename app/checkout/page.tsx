@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabaseBrowser } from '@/lib/supabase-browser'
+import { createClient } from '@/utils/supabase/client'
 
 const features = [
   '120 ข้อ · IPIP-NEO มาตรฐานสากล',
@@ -13,7 +13,7 @@ const features = [
   'สามารถต่อยอดเป็น 300 ข้อ (ระดับวิจัย)',
 ]
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const cancelled = searchParams.get('cancelled') === '1'
@@ -23,7 +23,8 @@ export default function CheckoutPage() {
   const [checkingAuth, setCheckingAuth] = useState(true)
 
   useEffect(() => {
-    supabaseBrowser.auth.getSession().then(({ data: { session } }) => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setCheckingAuth(false)
       if (!session) {
         router.replace('/auth?redirect=/checkout')
@@ -35,7 +36,8 @@ export default function CheckoutPage() {
     setLoading(true)
     setError(null)
 
-    const { data: { session } } = await supabaseBrowser.auth.getSession()
+    const supabase = createClient()
+    const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       router.push('/auth?redirect=/checkout')
       return
@@ -121,5 +123,17 @@ export default function CheckoutPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center">
+        <div className="loading-spinner" />
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   )
 }
