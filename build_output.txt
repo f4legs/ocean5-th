@@ -1,0 +1,26 @@
+
+> ocean5-th@0.1.0 build
+> next build
+
+▲ Next.js 16.2.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.1s
+  Running TypeScript ...
+  Finished TypeScript in 4.1s ...
+  Collecting page data using 11 workers ...
+Error: supabaseUrl is required.
+    at module evaluation (C:\Users\F\Project Lighthouse\ocean5-th\.next\server\chunks\[root-of-the-server]__0ioc_ak._.js:1:1045)
+    at instantiateModule (C:\Users\F\Project Lighthouse\ocean5-th\.next\server\chunks\[turbopack]_runtime.js:853:9)
+    at getOrInstantiateModuleFromParent (C:\Users\F\Project Lighthouse\ocean5-th\.next\server\chunks\[turbopack]_runtime.js:877:12)
+    at Context.esmImport [as i] (C:\Users\F\Project Lighthouse\ocean5-th\.next\server\chunks\[turbopack]_runtime.js:281:20)
+    at module evaluation (C:\Users\F\Project Lighthouse\ocean5-th\.next\server\chunks\[root-of-the-server]__0ioc_ak._.js:1:1488)
+    at instantiateModule (C:\Users\F\Project Lighthouse\ocean5-th\.next\server\chunks\[turbopack]_runtime.js:853:9)
+    at instantiateRuntimeModule (C:\Users\F\Project Lighthouse\ocean5-th\.next\server\chunks\[turbopack]_runtime.js:882:12)
+
+> Build error occurred
+Error: Failed to collect page data for /api/checkout/verify
+    at ignore-listed frames {
+  type: 'Error'
+}

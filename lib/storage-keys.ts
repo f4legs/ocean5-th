@@ -8,4 +8,7 @@ export const STORAGE_KEYS = {
   PAGE_DURATIONS: 'ocean_page_durations',
   RESPONSE_TIMES: 'ocean_response_times',
   AI_REPORT: 'ocean_ai_report',
+  // Set when user arrives via a friend invite link (/invite/[code])
+  // Cleared after results are auto-shared with the invite owner
+  FRIEND_INVITE_CODE: 'ocean_friend_invite_code',
 } as const

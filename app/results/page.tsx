@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { calcScores, DIMENSION_INFO, ScoreResult } from '@/lib/scoring'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
@@ -310,6 +311,7 @@ export default function ResultsPage() {
   const [exportError, setExportError] = useState<string | null>(null)
   const [showRestartWarning, setShowRestartWarning] = useState(false)
   const activeRequestId = useRef(0)
+  const inviteSharedRef = useRef(false)
 
   const fetchReport = useCallback((
     scoresPct: ScoreResult['pct'],
@@ -378,6 +380,27 @@ export default function ResultsPage() {
               generatedAt: new Date().toISOString(),
             } satisfies CachedReport)
           )
+        }
+
+        // Auto-share with friend invite owner if this session came via an invite link
+        if (!inviteSharedRef.current) {
+          const inviteCode = localStorage.getItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
+          if (inviteCode && cacheContext) {
+            inviteSharedRef.current = true
+            const exportPayload = {
+              inviteCode,
+              scores: { pct: scoresPct },
+              profile: profileData,
+              sessionId: cacheContext.sessionId,
+            }
+            void fetch('/api/profiles/share', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(exportPayload),
+            }).then(res => {
+              if (res.ok) localStorage.removeItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
+            }).catch(() => { /* silent — friend still sees their own results */ })
+          }
         }
       } catch (err) {
         if (requestId !== activeRequestId.current) return
@@ -844,6 +867,18 @@ export default function ResultsPage() {
                 >
                   เปิดหน้าพิมพ์
                 </button>
+
+                <div className="border-t border-[rgba(95,116,130,0.12)] pt-3 mt-1">
+                  <Link
+                    href="/checkout"
+                    className="primary-button w-full justify-center text-sm"
+                  >
+                    ทดสอบเชิงลึก 120 ข้อ ฿49 →
+                  </Link>
+                  <p className="mt-2 text-xs text-[var(--text-faint)] text-center leading-[1.5]">
+                    วิเคราะห์ 30 ลักษณะย่อย · รายงาน AI 2,000 คำ
+                  </p>
+                </div>
 
                 <button
                   onClick={() => setShowRestartWarning(true)}

@@ -11,7 +11,21 @@
       "Bash(node -e \"const m = require\\(''c:/Users/F/Project Lighthouse/ocean5-th/node_modules/react-markdown/index.js''\\); console.log\\(typeof m.default, m.default?.name || ''unnamed''\\)\")",
       "Bash(node -e \"const m = require\\(''c:/Users/F/Project Lighthouse/ocean5-th/node_modules/@google/genai''\\); const ai = new m.GoogleGenAI\\({apiKey:''x''}\\); console.log\\(Object.keys\\(ai.models\\).filter\\(k => k.includes\\(''tream''\\) || k.includes\\(''enerate''\\)\\)\\)\")",
       "Bash(node -e \"const p = require\\(''/c/Users/F/Project Lighthouse/ocean5-th/node_modules/next/package.json''\\); console.log\\(p.version\\)\")",
-      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d[''''version'''']\\)\")"
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d[''''version'''']\\)\")",
+      "Bash(chub search \"supabase\" --json)",
+      "Bash(chub search \"stripe\" --json)",
+      "Bash(chub get supabase/client --lang js)",
+      "Bash(chub get stripe/api --lang js)",
+      "Bash(chub search --json)",
+      "Bash(chub search \"nextjs\" --json)",
+      "Bash(chub search \"react\" --json)",
+      "Bash(python -c \"import json,sys; data=json.load\\(sys.stdin\\); [print\\(r[''id'']\\) for r in data[''results'']]\")",
+      "Bash(chub get next/next --lang js)",
+      "Bash(chub get next/next --lang js --output -)",
+      "Read(//c/Users/F/**)",
+      "Bash(chub get next/next --lang js -o next-docs.md)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(node -e \"const s = require\\(''stripe''\\); console.log\\(s.LATEST_API_VERSION\\)\")"
     ]
   }
 }
