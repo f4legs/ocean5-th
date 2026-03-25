@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid slice">
+  <!--
+    Background: OCEAN research vocabulary fills the entire area as a flowing text texture.
+    17 rows cycling through all 5 trait vocabularies, staggered x-offsets for organic feel.
+    Grid lines are handled by CSS; this layer is purely typographic texture.
+  -->
+
+  <!-- BIG OCEAN type silhouette — sits behind the research text rows -->
+  <text
+    x="500" y="258"
+    text-anchor="middle"
+    font-family="Georgia,'Noto Serif Thai',serif"
+    font-weight="700"
+    font-size="210"
+    letter-spacing="22"
+    fill="#2c4350"
+    opacity="0.055">OCEAN</text>
+
+  <g font-family="'Courier New',Consolas,'Liberation Mono',monospace" font-size="9" fill="#2c4350" letter-spacing="0.5">
+
+    <!-- Row 1 — Openness -->
+    <text x="-10"  y="18"  opacity="0.11">openness · curiosity · aesthetics · fantasy · imagination · feelings · actions · ideas · values · intellect · creativity · wonder · novelty · insight · exploration · openness · curiosity · aesthetics · fantasy · imagination · feelings · actions · ideas · values · intellect · creativity · wonder · novelty</text>
+
+    <!-- Row 2 — Conscientiousness -->
+    <text x="-55"  y="37"  opacity="0.09">conscientiousness · order · competence · dutifulness · achievement · self-discipline · deliberation · organized · reliable · thorough · careful · diligent · systematic · conscientiousness · order · competence · dutifulness · achievement · self-discipline · deliberation · organized · reliable · thorough</text>
+
+    <!-- Row 3 — Extraversion -->
+    <text x="-25"  y="56"  opacity="0.10">extraversion · warmth · gregariousness · assertiveness · activity · excitement-seeking · positive emotions · sociable · outgoing · energetic · talkative · confident · expressive · extraversion · warmth · gregariousness · assertiveness · activity · excitement-seeking · positive emotions · sociable</text>
+
+    <!-- Row 4 — Agreeableness -->
+    <text x="-70"  y="75"  opacity="0.08">agreeableness · trust · morality · altruism · compliance · modesty · sympathy · cooperation · kindness · prosocial · empathy · harmony · generous · caring · gentle · agreeableness · trust · morality · altruism · compliance · modesty · sympathy · cooperation · kindness · prosocial · empathy</text>
+
+    <!-- Row 5 — Neuroticism -->
+    <text x="-40"  y="94"  opacity="0.09">neuroticism · anxiety · hostility · depression · self-consciousness · impulsiveness · vulnerability · stress · reactive · sensitive · emotional · worry · tension · neuroticism · anxiety · hostility · depression · self-consciousness · impulsiveness · vulnerability · stress · reactive · sensitive</text>
+
+    <!-- Row 6 — Openness facets -->
+    <text x="-15"  y="113" opacity="0.08">O: fantasy · aesthetics · feelings · actions · ideas · values · openness to experience · intellectual curiosity · artistic sensitivity · broad interests · divergent thinking · O: fantasy · aesthetics · feelings · actions · ideas · values · openness to experience · intellectual curiosity</text>
+
+    <!-- Row 7 — Conscientiousness facets -->
+    <text x="-85"  y="132" opacity="0.10">C: competence · order · dutifulness · achievement striving · self-discipline · deliberation · Big Five · IPIP · NEO PI-R · factor analysis · personality · trait · C: competence · order · dutifulness · achievement striving · self-discipline · deliberation · Big Five · IPIP · NEO PI-R</text>
+
+    <!-- Row 8 — Extraversion facets -->
+    <text x="-30"  y="151" opacity="0.09">E: warmth · gregariousness · assertiveness · activity · excitement seeking · positive emotions · surgency · vitality · social dominance · E: warmth · gregariousness · assertiveness · activity · excitement seeking · positive emotions · surgency · vitality</text>
+
+    <!-- Row 9 — Agreeableness facets -->
+    <text x="-60"  y="170" opacity="0.11">A: trust · straightforwardness · altruism · compliance · modesty · tender-mindedness · cooperation · social harmony · A: trust · straightforwardness · altruism · compliance · modesty · tender-mindedness · cooperation · social harmony · A: trust</text>
+
+    <!-- Row 10 — Neuroticism facets -->
+    <text x="-20"  y="189" opacity="0.09">N: anxiety · angry hostility · depression · self-consciousness · impulsivity · vulnerability · emotional instability · N: anxiety · angry hostility · depression · self-consciousness · impulsivity · vulnerability · emotional instability · N: anxiety</text>
+
+    <!-- Row 11 — Research terms -->
+    <text x="-50"  y="208" opacity="0.08">reliability · validity · construct · latent variable · factor loading · alpha coefficient · cross-cultural · normative · Big Five · five-factor model · personality psychology · reliability · validity · construct · latent variable · factor loading · alpha coefficient · cross-cultural · normative</text>
+
+    <!-- Row 12 — Openness -->
+    <text x="-75"  y="227" opacity="0.10">openness · broad imagination · intellectual curiosity · aesthetic sensitivity · preference for variety · unconventional · independent thinking · openness · broad imagination · intellectual curiosity · aesthetic sensitivity · preference for variety · unconventional · independent thinking</text>
+
+    <!-- Row 13 — Conscientiousness -->
+    <text x="-35"  y="246" opacity="0.09">conscientiousness · goal-directed behavior · impulse control · task completion · planning · persistence · self-regulation · conscientiousness · goal-directed behavior · impulse control · task completion · planning · persistence · self-regulation · conscientiousness</text>
+
+    <!-- Row 14 — Extraversion -->
+    <text x="-10"  y="265" opacity="0.08">extraversion · positive affect · social engagement · reward sensitivity · approach motivation · high energy · extraversion · positive affect · social engagement · reward sensitivity · approach motivation · high energy · extraversion · positive affect · social engagement</text>
+
+    <!-- Row 15 — Agreeableness -->
+    <text x="-65"  y="284" opacity="0.09">agreeableness · prosocial orientation · conflict avoidance · interpersonal warmth · cooperative disposition · agreeableness · prosocial orientation · conflict avoidance · interpersonal warmth · cooperative disposition · agreeableness · prosocial orientation · conflict avoidance</text>
+
+    <!-- Row 16 — Neuroticism -->
+    <text x="-45"  y="303" opacity="0.08">neuroticism · negative emotionality · emotional reactivity · threat sensitivity · psychological distress · neuroticism · negative emotionality · emotional reactivity · threat sensitivity · psychological distress · neuroticism · negative emotionality · emotional reactivity</text>
+
+    <!-- Row 17 — All five labels -->
+    <text x="-20"  y="322" opacity="0.10">OPENNESS · CONSCIENTIOUSNESS · EXTRAVERSION · AGREEABLENESS · NEUROTICISM · OPENNESS · CONSCIENTIOUSNESS · EXTRAVERSION · AGREEABLENESS · NEUROTICISM · OPENNESS · CONSCIENTIOUSNESS · EXTRAVERSION · AGREEABLENESS · NEUROTICISM</text>
+
+  </g>
+</svg>

@@ -281,39 +281,109 @@ export default function Quiz300Page() {
                   </p>
                 </div>
 
-                <div className="muted-panel rounded-[1.5rem] px-4 py-3">
-                  <p className="text-xs text-[var(--text-soft)]">💾 บันทึกร่างอัตโนมัติ</p>
+                <div className="muted-panel rounded-[1.5rem] px-4 py-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-3" style={{ color: 'var(--text-faint)' }}>สเกลคำตอบ</p>
+                  <div className="space-y-1.5">
+                    {LABELS.map(label => (
+                      <div key={label.value} className="flex items-center gap-3">
+                        <div
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                          style={{ background: 'white', color: 'var(--accent-strong)' }}
+                        >
+                          {label.value}
+                        </div>
+                        <span className="text-[12px]" style={{ color: 'var(--text-soft)' }}>{label.th}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </section>
           </aside>
 
-          <section className="space-y-4">
-            <div className="space-y-4">
+          <section className="space-y-3">
+            {page === 1 && (
+              <div className="rounded-2xl px-5 py-4" style={{ background: 'var(--page-surface)' }}>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--accent)' }}>
+                  คำแนะนำ
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed" style={{ color: 'var(--text-soft)' }}>
+                  ไม่มีคำตอบที่ถูกหรือผิด กรุณาตอบตามความเป็นจริงของคุณในชีวิตประจำวัน ใช้ความรู้สึกแรกได้เลย
+                </p>
+              </div>
+            )}
+
+            {/* ── Inline question table ── */}
+            <div className="rounded-2xl overflow-hidden" style={{ background: 'white' }}>
+              {/* Column header */}
+              <div
+                className="sticky top-0 z-10 grid items-center px-4 py-2"
+                style={{
+                  gridTemplateColumns: '2rem 1fr repeat(5, 2.75rem)',
+                  gap: '0.5rem',
+                  background: 'white',
+                  borderBottom: '1px solid var(--line)',
+                }}
+              >
+                <div />
+                <div className="text-[10px] font-bold" style={{ color: 'var(--text-faint)' }}>คำถาม</div>
+                <div
+                  className="flex items-center justify-between text-[10px] font-bold"
+                  style={{ gridColumn: 'span 5', color: 'var(--text-faint)' }}
+                >
+                  <span>← มาก</span>
+                  <span>น้อย →</span>
+                </div>
+              </div>
+
+              {/* Question rows */}
               {pageItems.map((item, idx) => {
                 const globalIdx = (page - 1) * ITEMS_PER_PAGE_300 + idx + 1
                 const selected = answers[item.id]
                 const qId = `q-${item.id}`
+                const isAnswered = selected !== undefined
 
                 return (
-                  <article key={item.id} className={`section-panel rounded-[1.75rem] px-5 py-5 sm:px-6 sm:py-6 ${selected !== undefined ? 'ring-1 ring-[rgba(84,114,127,0.18)]' : ''}`}>
-                    <div className="flex items-start gap-4">
-                      <div className="factor-medallion factor-medallion-number h-10 w-10 shrink-0 text-sm leading-none">
-                        <span>{globalIdx}</span>
-                      </div>
-                      <p id={qId} className="pt-1 text-base font-medium leading-8 text-slate-800 sm:text-lg">{item.th}</p>
-                    </div>
-                    <div role="radiogroup" aria-labelledby={qId} className="mt-4 grid grid-cols-5 gap-2">
-                      {LABELS.map(label => (
-                        <button key={label.value} role="radio" aria-checked={selected === label.value} onClick={() => handleAnswer(item.id, label.value)}
-                          className={`scale-button flex flex-col items-center justify-center gap-1 px-2 py-3 text-center ${selected === label.value ? 'active' : ''}`}
-                          style={{ minHeight: '4.5rem' }}>
-                          <span className="text-base font-bold">{label.value}</span>
-                          <span className="scale-label text-[10px] leading-tight">{label.th}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </article>
+                  <div
+                    key={item.id}
+                    className="grid items-center px-4 py-3.5 transition-colors"
+                    style={{
+                      gridTemplateColumns: '2rem 1fr repeat(5, 2.75rem)',
+                      gap: '0.5rem',
+                      borderTop: idx > 0 ? '1px solid var(--line)' : undefined,
+                      background: idx % 2 === 1
+                        ? isAnswered ? 'rgba(69,98,118,0.13)' : 'rgba(69,98,118,0.05)'
+                        : isAnswered ? 'rgba(69,98,118,0.06)' : 'white',
+                    }}
+                  >
+                    <span className="text-[11px] font-bold tabular-nums text-center" style={{ color: 'var(--text-faint)' }}>
+                      {globalIdx}
+                    </span>
+                    <p id={qId} className="text-[13.5px] leading-relaxed" style={{ color: 'var(--text-main)' }}>
+                      {item.th}
+                    </p>
+                    {LABELS.map(label => (
+                      <button
+                        key={label.value}
+                        role="radio"
+                        aria-checked={selected === label.value}
+                        aria-label={`${label.th} (${label.value})`}
+                        onClick={() => handleAnswer(item.id, label.value)}
+                        className="flex items-center justify-center rounded-xl text-sm font-bold transition-all"
+                        style={{
+                          height: '2.75rem',
+                          background: selected === label.value
+                            ? 'linear-gradient(135deg, #456276 0%, #2c4350 100%)'
+                            : 'var(--page-surface)',
+                          color: selected === label.value ? 'white' : 'var(--text-soft)',
+                          boxShadow: selected === label.value ? '0 4px 12px rgba(44,67,80,0.22)' : 'none',
+                          transform: selected === label.value ? 'translateY(-1px)' : undefined,
+                        }}
+                      >
+                        {label.value}
+                      </button>
+                    ))}
+                  </div>
                 )
               })}
             </div>

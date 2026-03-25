@@ -23,7 +23,7 @@
 
   /* Structural lines — use sparingly */
   --line: rgba(108, 124, 136, 0.14);
-  --line-strong: rgba(76, 93, 105, 0.22);
+  --line-strong: rgba(76, 93, 105, 0.15);
 
   /* Shadows */
   --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.05);
@@ -188,7 +188,7 @@ select:focus-visible {
   align-items: flex-start;
   justify-content: center;
   width: 100%;
-  padding-top: 25%;
+  padding-top: 12%;
   padding-bottom: 10%;
   overflow: visible;
   /* Real grid system — major (100px) + minor (20px) — as design language */
@@ -196,32 +196,32 @@ select:focus-visible {
     /* Major grid — horizontal rules */
     repeating-linear-gradient(
       0deg,
-      rgba(69, 98, 118, 0.11) 0,
-      rgba(69, 98, 118, 0.11) 1px,
+      rgba(69, 98, 118, 0.13) 0,
+      rgba(69, 98, 118, 0.13) 1px,
       transparent 1px,
       transparent 100px
     ),
     /* Major grid — vertical columns */
     repeating-linear-gradient(
       90deg,
-      rgba(69, 98, 118, 0.11) 0,
-      rgba(69, 98, 118, 0.11) 1px,
+      rgba(69, 98, 118, 0.13) 0,
+      rgba(69, 98, 118, 0.13) 1px,
       transparent 1px,
       transparent 100px
     ),
     /* Minor grid — horizontal subdivision */
     repeating-linear-gradient(
       0deg,
-      rgba(69, 98, 118, 0.045) 0,
-      rgba(69, 98, 118, 0.045) 1px,
+      rgba(69, 98, 118, 0.08) 0,
+      rgba(69, 98, 118, 0.08) 1px,
       transparent 1px,
       transparent 20px
     ),
     /* Minor grid — vertical subdivision */
     repeating-linear-gradient(
       90deg,
-      rgba(69, 98, 118, 0.045) 0,
-      rgba(69, 98, 118, 0.045) 1px,
+      rgba(69, 98, 118, 0.08) 0,
+      rgba(69, 98, 118, 0.08) 1px,
       transparent 1px,
       transparent 20px
     ),
@@ -248,14 +248,14 @@ select:focus-visible {
 }
 
 
-/* Typography art background — OCEAN watermark only (grid lines are in the element bg) */
+/* ASCII art grid background — external SVG with character texture + block-letter OCEAN */
 .trait-cloud-wrap::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 340'%3E%3Ctext x='42' y='272' font-size='218' font-family='Georgia%2C serif' font-weight='700' fill='%23456276' opacity='0.065' letter-spacing='28'%3EOCEAN%3C/text%3E%3Ctext x='46' y='310' font-size='9.5' font-family='Arial%2C sans-serif' fill='%23456276' opacity='0.22' letter-spacing='2.4'%3EOPENNESS %7C CONSCIENTIOUSNESS %7C EXTRAVERSION %7C AGREEABLENESS %7C NEUROTICISM%3C/text%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  background: url('/ocean-ascii-bg.svg') center / cover no-repeat;
 }
 
 .trait-badge {
@@ -577,7 +577,8 @@ select:focus-visible {
 }
 
 .factor-medallion-number > span {
-  transform: translate(1px, 1px);
+  display: block;
+  transform: none;
 }
 
 .scale-button {
