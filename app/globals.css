@@ -97,6 +97,279 @@ select:focus-visible {
   margin: 0 auto;
 }
 
+/* ── Hero Section ── */
+.hero-section {
+  border-radius: 2rem;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  background: white;
+}
+
+.hero-body {
+  padding: 2rem 1.75rem 3.5rem;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  text-align: center;
+}
+
+.hero-col-left,
+.hero-col-right {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .hero-body {
+    padding: 2.75rem 2.5rem 4rem;
+  }
+
+  .hero-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .hero-subtitle {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .hero-info-block {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-body {
+    padding: 3rem 3.5rem 4.5rem;
+  }
+}
+
+.hero-title {
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+}
+
+.hero-subtitle {
+  max-width: 44ch;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text-soft);
+}
+
+@media (min-width: 640px) {
+  .hero-subtitle {
+    font-size: 1.075rem;
+  }
+}
+
+.hero-info-block {
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+  padding: 1.25rem 1.5rem;
+  border-radius: 1.25rem;
+  background: var(--page-surface);
+}
+
+/* ── Trait Cloud ── */
+.trait-cloud-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  padding-top: 25%;
+  padding-bottom: 10%;
+  overflow: visible;
+  /* Real grid system — major (100px) + minor (20px) — as design language */
+  background:
+    /* Major grid — horizontal rules */
+    repeating-linear-gradient(
+      0deg,
+      rgba(69, 98, 118, 0.11) 0,
+      rgba(69, 98, 118, 0.11) 1px,
+      transparent 1px,
+      transparent 100px
+    ),
+    /* Major grid — vertical columns */
+    repeating-linear-gradient(
+      90deg,
+      rgba(69, 98, 118, 0.11) 0,
+      rgba(69, 98, 118, 0.11) 1px,
+      transparent 1px,
+      transparent 100px
+    ),
+    /* Minor grid — horizontal subdivision */
+    repeating-linear-gradient(
+      0deg,
+      rgba(69, 98, 118, 0.045) 0,
+      rgba(69, 98, 118, 0.045) 1px,
+      transparent 1px,
+      transparent 20px
+    ),
+    /* Minor grid — vertical subdivision */
+    repeating-linear-gradient(
+      90deg,
+      rgba(69, 98, 118, 0.045) 0,
+      rgba(69, 98, 118, 0.045) 1px,
+      transparent 1px,
+      transparent 20px
+    ),
+    /* Atmospheric base */
+    linear-gradient(135deg, #c8d5de 0%, #dbe4e7 45%, #edf1f3 100%);
+  border-bottom: 1px solid rgba(69, 98, 118, 0.12);
+  --cloud-scale: 1;
+}
+
+@media (max-width: 640px) {
+  .trait-cloud-wrap {
+    --cloud-scale: 0.2;
+    padding-top: 15%;
+    padding-bottom: 8%;
+  }
+  .trait-badge {
+    width: 52px;
+    height: 52px;
+  }
+  .trait-badge svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+
+/* Typography art background — OCEAN watermark only (grid lines are in the element bg) */
+.trait-cloud-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 340'%3E%3Ctext x='42' y='272' font-size='218' font-family='Georgia%2C serif' font-weight='700' fill='%23456276' opacity='0.065' letter-spacing='28'%3EOCEAN%3C/text%3E%3Ctext x='46' y='310' font-size='9.5' font-family='Arial%2C sans-serif' fill='%23456276' opacity='0.22' letter-spacing='2.4'%3EOPENNESS %7C CONSCIENTIOUSNESS %7C EXTRAVERSION %7C AGREEABLENESS %7C NEUROTICISM%3C/text%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+
+.trait-badge {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  cursor: default;
+  transform: translateX(calc(var(--dx) * var(--cloud-scale, 1))) translateY(calc(var(--dy) * var(--cloud-scale, 1))) rotate(var(--rot));
+  transition: transform 240ms ease, box-shadow 240ms ease;
+}
+
+.trait-badge:hover {
+  transform: translateX(calc(var(--dx) * var(--cloud-scale, 1))) translateY(calc(var(--dy) * var(--cloud-scale, 1))) scale(1.18) rotate(0deg);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+  z-index: 20 !important;
+}
+
+/* ── Tooltips ── */
+
+/* Base — hidden, default position = above badge (all screen sizes) */
+.trait-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  background: var(--accent-strong);
+  color: white;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease, transform 180ms ease;
+  z-index: 30;
+}
+.trait-badge:hover .trait-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+/* Arrow pointing down toward badge */
+.trait-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--accent-strong);
+}
+
+/* Mobile only: O → right, N → left */
+@media (max-width: 640px) {
+  .trait-badge[data-key="O"] .trait-tooltip {
+    left: calc(100% + 10px);
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%) translateX(-4px);
+  }
+  .trait-badge[data-key="O"]:hover .trait-tooltip {
+    transform: translateY(-50%) translateX(0);
+  }
+  .trait-badge[data-key="O"] .trait-tooltip::after {
+    top: 50%;
+    left: auto;
+    right: 100%;
+    transform: translateY(-50%);
+    border-top-color: transparent;
+    border-right-color: var(--accent-strong);
+  }
+
+  .trait-badge[data-key="N"] .trait-tooltip {
+    right: calc(100% + 10px);
+    left: auto;
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%) translateX(4px);
+  }
+  .trait-badge[data-key="N"]:hover .trait-tooltip {
+    transform: translateY(-50%) translateX(0);
+  }
+  .trait-badge[data-key="N"] .trait-tooltip::after {
+    top: 50%;
+    left: 100%;
+    right: auto;
+    transform: translateY(-50%);
+    border-top-color: transparent;
+    border-left-color: var(--accent-strong);
+  }
+}
+
+.trait-tooltip-en {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.trait-tooltip-th {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+
 .glass-panel {
   background: white;
   box-shadow: var(--shadow-card);

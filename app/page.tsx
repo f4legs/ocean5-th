@@ -1,133 +1,73 @@
 import Link from 'next/link'
-import { DIMENSION_INFO } from '@/lib/scoring'
 import ReferenceNote from '@/components/reference-note'
 import ImportJsonButton from '@/components/import-json-button'
-
-const dimensions = [
-  { key: 'O', hue: '210', note: 'การเปิดรับสิ่งใหม่และการคิดเชิงนามธรรม' },
-  { key: 'C', hue: '38',  note: 'วินัย ความรับผิดชอบ และการจัดการตนเอง' },
-  { key: 'E', hue: '158', note: 'พลังทางสังคมและการแสดงออก' },
-  { key: 'A', hue: '268', note: 'ความร่วมมือ ความอ่อนโยน และความไว้วางใจ' },
-  { key: 'N', hue: '348', note: 'การรับมือกับความเครียดและอารมณ์' },
-] as const
+import OceanTraitCloud from '@/components/ocean-trait-cloud'
 
 export default function Home() {
   return (
     <main id="main" className="page-shell">
       <div className="page-wrap max-w-5xl">
 
-        {/* ── Hero card ── */}
-        <section
-          className="rounded-[2rem] overflow-hidden"
-          style={{ background: 'white', boxShadow: 'var(--shadow-card)' }}
-        >
-          <div className="grid lg:grid-cols-[1fr_340px] lg:items-stretch">
+        {/* ── Hero section ── */}
+        <section className="hero-section">
+          {/* Top: crampled OCEAN trait cloud */}
+          <OceanTraitCloud />
 
-            {/* Left: headline + CTA */}
-            <div className="px-7 pt-10 pb-8 sm:px-10 sm:pt-12 sm:pb-10">
-              <span className="eyebrow">
-                <span className="accent-dot" aria-hidden="true" />
-                fars-ai // personality test
-              </span>
+          {/* Body: two-column grid on md+ */}
+          <div className="hero-body">
+            <div className="hero-grid">
 
-              <h1 className="display-title mt-6 text-4xl sm:text-5xl">
-                แบบประเมินบุคลิกภาพ<br />5 มิติ (OCEAN)
-              </h1>
+              {/* Left col: identity — eyebrow, title, subtitle, pills */}
+              <div className="hero-col-left">
+                <span className="eyebrow self-start mx-auto md:mx-0">
+                  <span className="accent-dot" aria-hidden="true" />
+                  fars-ai // personality test
+                </span>
 
-              <p className="mt-5 text-base leading-8 sm:text-lg" style={{ color: 'var(--text-soft)' }}>
-                ใช้ประเมินแนวโน้มบุคลิกภาพตามกรอบ Big Five
-                เพื่อช่วยอ่านรูปแบบการคิด การทำงาน และการสื่อสารให้ชัดขึ้น
-              </p>
+                <h1 className="display-title hero-title mt-6">
+                  แบบประเมินบุคลิกภาพ<br />5 มิติ (OCEAN)
+                </h1>
 
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                {['50 ข้อ · ใช้เวลา 5-8 นาที', 'อ้างอิง IPIP ฉบับภาษาไทย'].map(note => (
-                  <span
-                    key={note}
-                    className="metric-pill text-sm"
-                  >
-                    {note}
-                  </span>
-                ))}
-              </div>
+                <p className="hero-subtitle mt-5">
+                  ใช้ประเมินแนวโน้มบุคลิกภาพตามกรอบ Big Five
+                  เพื่อช่วยอ่านรูปแบบการคิด การทำงาน และการสื่อสารให้ชัดขึ้น
+                </p>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link href="/quiz" className="primary-button px-7 text-base">
-                  เริ่มการประเมิน
-                  <span aria-hidden="true">→</span>
-                </Link>
-              </div>
+                <div className="mt-6 flex flex-wrap justify-center md:justify-start gap-2.5">
+                  {['50 ข้อ · ใช้เวลา 5-8 นาที', 'อ้างอิง IPIP ฉบับภาษาไทย'].map(note => (
+                    <span key={note} className="metric-pill text-sm">{note}</span>
+                  ))}
+                </div>
 
-              <p className="mt-4 text-[12px]" style={{ color: 'var(--text-faint)' }}>
-                ไม่มีการจัดเก็บข้อมูลส่วนบุคคลบนเซิร์ฟเวอร์
-              </p>
-
-              {/* Usage notes */}
-              <div
-                className="mt-9 rounded-2xl px-5 py-5"
-                style={{ background: 'var(--page-surface)' }}
-              >
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-main)' }}>แนวทางการใช้งาน</p>
-                <ul className="mt-3 space-y-1.5 text-sm leading-[1.65]" style={{ paddingLeft: '1rem', color: 'var(--text-soft)' }}>
-                  <li>ตอบตามพฤติกรรมปกติของผู้ประเมิน</li>
-                  <li>ใช้เพื่อสะท้อนตนเองและประกอบการสนทนา</li>
-                  <li>หากเปิดด้วย LINE Browser จะเซฟ PDF ไม่ได้ ให้กด Open Browser ที่ขวาล่าง</li>
-                  <li>หากพบปัญหา โปรดติดต่อ (admin@fars-ai.tech)</li>
-                </ul>
-                <div
-                  className="mt-4 pt-4"
-                  style={{ borderTop: '1px solid var(--line)' }}
-                >
-                  <ImportJsonButton />
+                <div className="mt-8 flex flex-col items-center md:items-start gap-3">
+                  <Link href="/quiz" className="primary-button px-9 text-base">
+                    เริ่มการประเมิน
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                  <p className="text-[12px]" style={{ color: 'var(--text-faint)' }}>
+                    ไม่มีการจัดเก็บข้อมูลส่วนบุคคลบนเซิร์ฟเวอร์
+                  </p>
                 </div>
               </div>
-            </div>
 
-            {/* Right: 5 dimensions */}
-            <aside
-              className="px-6 py-8 sm:px-7 lg:border-l"
-              style={{ background: 'var(--page-surface)', borderColor: 'var(--line)' }}
-            >
-              <p
-                className="text-[10px] font-bold uppercase tracking-[0.20em]"
-                style={{ color: 'var(--accent)' }}
-              >
-                5 มิติหลัก
-              </p>
-              <div className="mt-5 space-y-3">
-                {dimensions.map(({ key, hue, note }) => {
-                  const info = DIMENSION_INFO[key]
-                  return (
-                    <article
-                      key={key}
-                      className="rounded-[1.25rem] px-4 py-4"
-                      style={{ background: 'white' }}
-                    >
-                      <div className="flex items-start gap-3.5">
-                        <div
-                          className="factor-medallion shrink-0"
-                          style={{ color: `hsl(${hue},55%,42%)`, background: `linear-gradient(145deg, hsl(${hue},80%,96%), hsl(${hue},60%,91%))`, border: `1px solid hsl(${hue},50%,86%)` }}
-                        >
-                          <span>{key}</span>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold" style={{ color: 'var(--text-main)' }}>{info.label}</p>
-                          <p
-                            className="mt-0.5 text-[10px] uppercase tracking-[0.14em]"
-                            style={{ color: 'var(--text-faint)' }}
-                          >
-                            {info.sublabel}
-                          </p>
-                          <p className="mt-1.5 text-xs leading-[1.6]" style={{ color: 'var(--text-soft)' }}>
-                            {note}
-                          </p>
-                        </div>
-                      </div>
-                    </article>
-                  )
-                })}
+              {/* Right col: usage notes */}
+              <div className="hero-col-right gap-0">
+                {/* Usage notes + import — pushed to bottom of column */}
+                <div className="hero-info-block mt-auto">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-main)' }}>แนวทางการใช้งาน</p>
+                  <ul className="mt-3 space-y-1.5 text-sm leading-[1.65]" style={{ paddingLeft: '1rem', color: 'var(--text-soft)' }}>
+                    <li>ตอบตามพฤติกรรมปกติของผู้ประเมิน</li>
+                    <li>ใช้เพื่อสะท้อนตนเองและประกอบการสนทนา</li>
+                    <li>หากเปิดด้วย LINE Browser จะเซฟ PDF ไม่ได้ ให้กด Open Browser ที่ขวาล่าง</li>
+                    <li>หากพบปัญหา โปรดติดต่อ (admin@fars-ai.tech)</li>
+                  </ul>
+                  <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--line)' }}>
+                    <ImportJsonButton />
+                  </div>
+                </div>
               </div>
-              <ReferenceNote compact className="mt-5" />
-            </aside>
+
+            </div>
           </div>
         </section>
 
@@ -167,18 +107,9 @@ export default function Home() {
 
               <div className="mt-8 space-y-3">
                 {[
-                  {
-                    label: 'Deep Analysis',
-                    desc: 'รายงาน AI สรุปเชิงลึก ครอบคลุมชุดคำถาม 120 ข้อ และ 300 ข้อระดับวิจัย',
-                  },
-                  {
-                    label: 'Comparing',
-                    desc: 'Dashboard เปรียบเทียบผลกับเพื่อนหรือกลุ่มผู้ทดสอบ',
-                  },
-                  {
-                    label: 'Advanced AI',
-                    desc: 'AI Consult จำลองบุคลิกภาพให้คำปรึกษาตาม OCEAN ของคุณ (Phase 3)',
-                  },
+                  { label: 'Deep Analysis', desc: 'รายงาน AI สรุปเชิงลึก ครอบคลุมชุดคำถาม 120 ข้อ และ 300 ข้อระดับวิจัย' },
+                  { label: 'Comparing',     desc: 'Dashboard เปรียบเทียบผลกับเพื่อนหรือกลุ่มผู้ทดสอบ' },
+                  { label: 'Advanced AI',   desc: 'AI Consult จำลองบุคลิกภาพให้คำปรึกษาตาม OCEAN ของคุณ (Phase 3)' },
                 ].map(f => (
                   <div
                     key={f.label}
@@ -204,10 +135,7 @@ export default function Home() {
               style={{ background: 'white' }}
             >
               <div>
-                <p
-                  className="text-[10px] font-bold uppercase tracking-[0.20em] mb-4"
-                  style={{ color: 'var(--text-faint)' }}
-                >
+                <p className="text-[10px] font-bold uppercase tracking-[0.20em] mb-4" style={{ color: 'var(--text-faint)' }}>
                   ปลดล็อกครั้งเดียว
                 </p>
                 <div className="flex items-baseline gap-1">
