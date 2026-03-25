@@ -54,6 +54,8 @@ export default function DashboardPage() {
   // Comparison state
   const [comparing, setComparing] = useState(false)
   const [aiReport, setAiReport] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editLabel, setEditLabel] = useState('')
 
@@ -167,6 +169,42 @@ export default function DashboardPage() {
       }
     } finally {
       setComparing(false)
+    }
+  }
+
+  async function handleSavePdf() {
+    if (!profileA || !profileB || !aiReport) return
+    setExportingPdf(true)
+    setExportError(null)
+    try {
+      const res = await fetch('/api/compare-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: {
+            profileA: { label: profileA.label, scores: profileA.scores },
+            profileB: { label: profileB.label, scores: profileB.scores },
+            method: compareMethod,
+            generatedAt: new Date().toISOString(),
+          },
+          report: aiReport,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ocean-compare-${profileA.label.slice(0, 12)}-vs-${profileB.label.slice(0, 12)}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
+    } finally {
+      setExportingPdf(false)
     }
   }
 
@@ -670,7 +708,20 @@ export default function DashboardPage() {
 
                 {profileA && profileB && (comparing || aiReport) && (
                   <div className="glass-panel rounded-2xl px-6 py-6">
-                    <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)] mb-4">AI Comparison Report</h2>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">AI Comparison Report</h2>
+                      {aiReport && !comparing && (
+                        <button
+                          onClick={handleSavePdf}
+                          disabled={exportingPdf}
+                          className="primary-button"
+                          style={{ minHeight: '2rem', padding: '0.4rem 1rem', fontSize: '0.78rem', borderRadius: '0.65rem' }}
+                        >
+                          {exportingPdf ? 'กำลังสร้าง PDF…' : 'Save PDF'}
+                        </button>
+                      )}
+                    </div>
+                    {exportError && <p className="text-xs text-red-500 mb-3">{exportError}</p>}
                     {comparing && !aiReport && <p className="body-soft text-sm animate-pulse">Analyzing…</p>}
                     {aiReport && (
                       <div className="prose prose-sm max-w-none text-[var(--text-main)]">

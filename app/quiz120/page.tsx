@@ -304,6 +304,21 @@ export default function Quiz120Page() {
                     ))}
                   </div>
                 </div>
+
+                <div className="rounded-[1.5rem] px-4 py-4 space-y-2" style={{ background: 'linear-gradient(135deg, rgba(69,98,118,0.10) 0%, rgba(44,67,80,0.06) 100%)', border: '1px solid rgba(69,98,118,0.15)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--accent-strong)' }}>✦ Premium</p>
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-soft)' }}>
+                      💾 บันทึกร่างอัตโนมัติ — กลับมาทำต่อได้ทุกเมื่อ
+                    </p>
+                    <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-soft)' }}>
+                      🔬 วิเคราะห์ 30 facets เชิงลึก
+                    </p>
+                    <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-soft)' }}>
+                      📄 รายงาน AI ส่วนตัว 2,000+ คำ
+                    </p>
+                  </div>
+                </div>
               </div>
             </section>
           </aside>
