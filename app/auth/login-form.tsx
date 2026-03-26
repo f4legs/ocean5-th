@@ -3,26 +3,39 @@
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import {
+  AUTH_REDIRECT_COOKIE,
+  DEFAULT_AUTH_REDIRECT,
+  normalizeAuthRedirect,
+} from '@/lib/auth-redirect'
 
 export default function LoginForm() {
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') ?? '/dashboard'
+  const redirectTo = normalizeAuthRedirect(searchParams.get('redirect'))
 
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  function setPostAuthRedirectCookie(path: string) {
+    const safePath = normalizeAuthRedirect(path)
+    const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+    document.cookie = `${AUTH_REDIRECT_COOKIE}=${encodeURIComponent(safePath)}; Path=/; Max-Age=900; SameSite=Lax${secure}`
+  }
+
   async function handleMagicLink(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
+    setPostAuthRedirectCookie(redirectTo)
+
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
 
@@ -38,11 +51,13 @@ export default function LoginForm() {
     setLoading(true)
     setError(null)
 
+    setPostAuthRedirectCookie(redirectTo)
+
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
+        redirectTo: `${window.location.origin}/auth/callback`,
         // @ts-expect-error: flowType is not in the base types but allowed by Supabase SDK
         flowType: 'pkce',
       },
@@ -173,6 +188,11 @@ export default function LoginForm() {
           <p className="mt-6 text-center text-xs" style={{ color: 'var(--text-faint)' }}>
             ไม่ต้องสร้างรหัสผ่าน · ลิงก์หมดอายุใน 1 ชั่วโมง
           </p>
+          {redirectTo !== DEFAULT_AUTH_REDIRECT && (
+            <p className="mt-2 text-center text-[11px]" style={{ color: 'var(--text-faint)' }}>
+              เข้าสู่ระบบแล้วจะกลับไปที่หน้าที่คุณเปิดไว้
+            </p>
+          )}
         </div>
       </div>
     </main>

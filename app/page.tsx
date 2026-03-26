@@ -153,7 +153,7 @@ export default function Home() {
                 <Link href="/checkout" className="primary-button w-full justify-center text-base">
                   เริ่มการวิเคราะห์เชิงลึก →
                 </Link>
-                <Link href="/auth" className="secondary-button w-full justify-center text-sm">
+                <Link href="/auth?redirect=/dashboard" className="secondary-button w-full justify-center text-sm">
                   เข้าสู่ระบบ (สำหรับสมาชิก)
                 </Link>
               </div>

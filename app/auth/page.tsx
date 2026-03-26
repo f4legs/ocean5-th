@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { normalizeAuthRedirect } from '@/lib/auth-redirect'
 import LoginForm from './login-form'
 
 export default async function AuthPage({
@@ -16,7 +17,7 @@ export default async function AuthPage({
   if (user) {
     // Await searchParams as required in Next.js 15
     const params = await searchParams
-    redirect(params?.redirect || '/dashboard')
+    redirect(normalizeAuthRedirect(params?.redirect))
   }
 
   return (
