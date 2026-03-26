@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import ReferenceNote from '@/components/reference-note'
 import ImportJsonButton from '@/components/import-json-button'
 import OceanTraitCloud from '@/components/ocean-trait-cloud'
@@ -19,9 +20,17 @@ export default function Home() {
 
               {/* Left col: identity — eyebrow, title, subtitle, pills */}
               <div className="hero-col-left">
+                <Image
+                  src="/logo_b5.png"
+                  alt="B5 logo"
+                  width={404}
+                  height={393}
+                  priority
+                  className="mx-auto md:mx-0 mb-4 h-auto w-14 sm:w-16"
+                />
                 <span className="eyebrow self-start mx-auto md:mx-0">
                   <span className="accent-dot" aria-hidden="true" />
-                  fars-ai // personality test
+                  b5-pt // personality test
                 </span>
 
                 <h1 className="display-title hero-title mt-6">

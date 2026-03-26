@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import { createClient } from '@/utils/supabase/client'
 import { DIMENSION_INFO } from '@/lib/scoring'
@@ -524,6 +525,13 @@ export default function DashboardClient() {
           {/* ── Left Sidebar ────────────────────────────────────── */}
           <aside className="space-y-4 lg:sticky lg:top-0 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:py-3 lg:pl-3 scrollbar-hidden">
             <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
+              <Image
+                src="/logo_b5.png"
+                alt="B5 logo"
+                width={404}
+                height={393}
+                className="mb-3 h-auto w-11"
+              />
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
                 OCEAN DASHBOARD

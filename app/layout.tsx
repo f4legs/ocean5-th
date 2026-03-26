@@ -22,7 +22,11 @@ const displayFont = Noto_Serif_Thai({
 })
 
 export const metadata: Metadata = {
-  icons: { icon: '/favicon.svg' },
+  icons: {
+    icon: [{ url: '/icon.png', type: 'image/png', sizes: '32x32' }],
+    apple: [{ url: '/apple-icon.png', type: 'image/png', sizes: '180x180' }],
+  },
+  manifest: '/manifest.webmanifest',
   title: 'แบบประเมินบุคลิกภาพ 5 มิติ (OCEAN)',
   description: 'ระบบประเมินบุคลิกภาพ Big Five สำหรับการใช้งานภายในองค์กร พร้อมรายงานสรุปภาษาไทย',
   robots: {

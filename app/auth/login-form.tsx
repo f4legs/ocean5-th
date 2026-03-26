@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/utils/supabase/client'
 import {
   AUTH_REDIRECT_COOKIE,
@@ -80,9 +81,17 @@ export default function LoginForm() {
           className="rounded-[2rem] px-7 py-10 sm:px-10"
           style={{ background: 'white' }}
         >
+          <Image
+            src="/logo_b5.png"
+            alt="B5 logo"
+            width={404}
+            height={393}
+            priority
+            className="mb-4 h-auto w-12"
+          />
           <span className="eyebrow">
             <span className="accent-dot" aria-hidden="true" />
-            fars-ai // เข้าสู่ระบบ
+            b5-pt // เข้าสู่ระบบ
           </span>
 
           <h1 className="display-title mt-5 text-3xl">เข้าสู่ระบบ</h1>
