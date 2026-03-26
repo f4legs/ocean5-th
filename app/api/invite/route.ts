@@ -9,6 +9,18 @@ function generateCode(): string {
   return randomBytes(4).toString('hex') // 8-char hex code
 }
 
+async function isPaidMember(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('payments')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('stripe_status', 'paid')
+    .limit(1)
+    .maybeSingle()
+
+  return Boolean(data)
+}
+
 // POST: paid user creates a friend invite link
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -22,6 +34,10 @@ export async function POST(req: NextRequest) {
   )
   const { data: { user } } = await userClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!(await isPaidMember(user.id))) {
+    return NextResponse.json({ error: 'Paid membership required' }, { status: 403 })
+  }
 
   // Get owner display name
   const { data: userProfile } = await supabase

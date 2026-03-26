@@ -85,6 +85,10 @@ export default function DashboardClient() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
+  const [profileShareProfileId, setProfileShareProfileId] = useState<string | null>(null)
+  const [profileShareCopiedProfileId, setProfileShareCopiedProfileId] = useState<string | null>(null)
+  const [profileShareLoading, setProfileShareLoading] = useState(false)
+  const [profileShareError, setProfileShareError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -343,6 +347,45 @@ export default function DashboardClient() {
     }
   }
 
+  async function handleCreateProfileShareLink(profileId: string) {
+    if (!accessToken) return
+
+    setProfileShareLoading(true)
+    setProfileShareError(null)
+    setProfileShareProfileId(profileId)
+    setProfileShareCopiedProfileId(null)
+
+    try {
+      const res = await fetch('/api/profile-share/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ profileId }),
+      })
+      const data = await res.json().catch(() => ({})) as { error?: string; url?: string }
+      if (!res.ok) {
+        throw new Error(data.error ?? 'ไม่สามารถสร้างลิงก์แชร์ได้ในขณะนี้')
+      }
+      if (!data.url) {
+        throw new Error('ไม่สามารถสร้างลิงก์แชร์ได้ในขณะนี้')
+      }
+
+      try {
+        await navigator.clipboard.writeText(data.url)
+        setProfileShareCopiedProfileId(profileId)
+        setTimeout(() => setProfileShareCopiedProfileId(current => current === profileId ? null : current), 2200)
+      } catch {
+        window.prompt('คัดลอกลิงก์นี้', data.url)
+      }
+    } catch (err) {
+      setProfileShareError(err instanceof Error ? err.message : 'ไม่สามารถสร้างลิงก์แชร์ได้ในขณะนี้')
+    } finally {
+      setProfileShareLoading(false)
+    }
+  }
+
   async function handleSignOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
@@ -517,7 +560,7 @@ export default function DashboardClient() {
 
                 <label className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer transition-colors text-sm ${navIdle}`}>
                   <IconUpload />
-                  <span>อัปโหลด JSON/PDF (สูงสุด 2 MB)</span>
+                  <span>อัปโหลด JSON/PDF</span>
                   <input ref={fileInputRef} type="file" accept=".json,.pdf,application/json,application/pdf" className="sr-only" onChange={handleUpload} />
                 </label>
 
@@ -1152,18 +1195,35 @@ export default function DashboardClient() {
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-3">
+                          <div className="flex flex-col items-stretch gap-2">
                             <button
                               onClick={() => {
                                 setSelectedA(p.id)
                                 setActiveView('compare')
                                 setViewingProfileId(null)
                               }}
-                              className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2"
+                              className="primary-button min-h-0 px-5 py-2.5 text-xs"
                             >
                               <IconBarChart />
                               <span>Compare this Profile</span>
                             </button>
+
+                            {p.source === 'test' && (
+                              <button
+                                onClick={() => void handleCreateProfileShareLink(p.id)}
+                                disabled={profileShareLoading}
+                                className="secondary-button min-h-0 px-5 py-2.5 text-xs"
+                              >
+                                {profileShareCopiedProfileId === p.id ? <IconCheck /> : null}
+                                {profileShareLoading && profileShareProfileId === p.id
+                                  ? 'Generating...'
+                                  : 'Share to other member'}
+                              </button>
+                            )}
+
+                            {profileShareProfileId === p.id && profileShareError && (
+                              <p className="text-[11px] font-medium text-red-600">{profileShareError}</p>
+                            )}
                           </div>
                         </div>
                       </div>

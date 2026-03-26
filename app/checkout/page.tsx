@@ -1,53 +1,98 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
 const OCEAN_DIM = [
-  { letter: 'O', label: 'Openness',          hue: '210', facets: [82, 68, 91, 74, 58, 88] },
-  { letter: 'C', label: 'Conscientiousness',  hue: '38',  facets: [76, 84, 62, 90, 71, 65] },
-  { letter: 'E', label: 'Extraversion',       hue: '158', facets: [55, 79, 88, 44, 93, 67] },
-  { letter: 'A', label: 'Agreeableness',      hue: '268', facets: [70, 60, 85, 78, 52, 94] },
-  { letter: 'N', label: 'Neuroticism',        hue: '348', facets: [48, 87, 63, 71, 80, 56] },
+  { letter: 'O', label: 'Openness', hue: '210', facets: [82, 68, 91, 74, 58, 88] },
+  { letter: 'C', label: 'Conscientiousness', hue: '38', facets: [76, 84, 62, 90, 71, 65] },
+  { letter: 'E', label: 'Extraversion', hue: '158', facets: [55, 79, 88, 44, 93, 67] },
+  { letter: 'A', label: 'Agreeableness', hue: '268', facets: [70, 60, 85, 78, 52, 94] },
+  { letter: 'N', label: 'Neuroticism', hue: '348', facets: [48, 87, 63, 71, 80, 56] },
 ]
 
-const FEATURES = [
+const FEATURE_STORIES = [
   {
+    title: 'ไม่หยุดแค่ Big Five',
+    desc: 'เห็นละเอียดถึง 30 facets ที่อธิบายสไตล์การคิด การทำงาน และความสัมพันธ์ได้ชัดกว่าคะแนน 5 ด้าน',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M2 4h12M2 8h10M2 12h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <circle cx="13" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
-        <path d="M12 12l.7.7 1.3-1.3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M2.5 12.5h11M4 10V6.5M8 10V3.5M12 10V7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        <circle cx="4" cy="5.5" r="1" fill="currentColor" />
+        <circle cx="8" cy="2.5" r="1" fill="currentColor" />
+        <circle cx="12" cy="6.5" r="1" fill="currentColor" />
       </svg>
     ),
-    title: 'รายงาน AI เชิงลึก 2,000–2,500 คำ',
-    desc: 'วิเคราะห์ทุก Facet พร้อมแนวทางพัฒนาตนเองเฉพาะคุณ',
   },
   {
+    title: 'รายงาน AI ที่อ่านแล้วเอาไปใช้ต่อได้',
+    desc: 'สรุปเชิงลึกประมาณ 2,500 คำ พร้อมภาพรวม จุดเด่น blind spots และแนวทางพัฒนาที่โยงกับคะแนนของคุณจริง',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <path d="M8 2L4 4.5V9c0 2.5 2 4.5 4 5 2-.5 4-2.5 4-5V4.5L8 2z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
-        <path d="M6 8.5l1.5 1.5 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M4 2.5h5l3 3V13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+        <path d="M9 2.5v3h3M5.5 8h5M5.5 10.5h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
       </svg>
     ),
-    title: 'มาตรฐาน IPIP-NEO ระดับงานวิจัย',
-    desc: 'แบบทดสอบที่นักจิตวิทยาใช้ทั่วโลก — แม่นกว่าทดสอบออนไลน์ทั่วไป',
   },
   {
+    title: 'เป็น workspace ต่อเนื่อง ไม่ใช่รายงานครั้งเดียว',
+    desc: 'เก็บโปรไฟล์ไว้ใน dashboard เปรียบเทียบคนสองคน สร้าง PDF และแชร์ผลให้ทีมหรือเพื่อนได้',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-        <circle cx="5.5" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.4"/>
-        <path d="M1.5 13c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-        <circle cx="12" cy="5.5" r="2" stroke="currentColor" strokeWidth="1.4"/>
-        <path d="M12 10.5c1.7.4 2.5 1.6 2.5 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+        <circle cx="5" cy="5.5" r="2" stroke="currentColor" strokeWidth="1.4" />
+        <circle cx="11.5" cy="6" r="1.7" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M2 13c.3-2 2-3.5 4.1-3.5 1.7 0 3.1.8 3.8 2.1M9 12.7c.4-1.3 1.6-2.2 3.1-2.2 1 0 1.9.4 2.6 1.1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       </svg>
     ),
-    title: 'เปรียบเทียบ ต่อยอดได้ไม่จำกัด',
-    desc: 'เก็บผลในระบบ เปรียบเทียบกับทีม และขยายเป็น 300 ข้อเมื่อพร้อม',
   },
 ]
+
+const INCLUDED_NOW = [
+  'Deep test 120 ข้อ พร้อมผล 30 facets',
+  'Research tier 300 ข้อ รวมอยู่ในราคาเดียวกัน',
+  'รายงาน AI ภาษาไทยเชิงลึกประมาณ 2,500 คำ',
+  'บันทึกโปรไฟล์ไว้ใน dashboard ของคุณ',
+  'AI compare ระหว่างสองโปรไฟล์ พร้อม export PDF',
+  'Invite เพื่อนและแชร์โปรไฟล์แบบลิงก์ส่วนตัว',
+]
+
+const FLOW_STEPS = [
+  {
+    step: '01',
+    title: 'ชำระครั้งเดียว',
+    desc: 'ปลดล็อกบัญชีของคุณผ่าน Stripe แบบไม่มีค่ารายเดือน',
+  },
+  {
+    step: '02',
+    title: 'เริ่ม 120 หรือ 300 ข้อ',
+    desc: 'เลือกความลึกที่ต้องการได้ทันทีโดยไม่ต้องซื้อเพิ่ม',
+  },
+  {
+    step: '03',
+    title: 'รับผล เก็บผล และเปรียบเทียบต่อ',
+    desc: 'รายงาน AI, dashboard, compare, PDF และระบบแชร์พร้อมใช้งาน',
+  },
+]
+
+const VALUE_METRICS = [
+  { value: '120', label: 'คำถาม deep' },
+  { value: '30', label: 'facet scores' },
+  { value: '300', label: 'research tier' },
+  { value: '2,500', label: 'คำรายงาน AI' },
+]
+
+function CheckIcon({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
+  const color = tone === 'dark' ? 'rgba(255,255,255,0.88)' : '#355062'
+
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ color, flexShrink: 0 }}>
+      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5.1 8.1l1.8 1.8 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
 function CheckoutContent() {
   const router = useRouter()
@@ -57,6 +102,7 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [alreadyPurchased, setAlreadyPurchased] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -69,28 +115,47 @@ function CheckoutContent() {
   async function handleCheckout() {
     setLoading(true)
     setError(null)
+    setAlreadyPurchased(false)
 
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      router.push('/auth?redirect=/checkout')
-      return
-    }
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
 
-    const res = await fetch('/api/checkout', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
+      if (!session) {
+        setLoading(false)
+        router.push('/auth?redirect=/checkout')
+        return
+      }
 
-    const data = await res.json()
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
 
-    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { error?: string; url?: string }
+
+      if (!res.ok) {
+        if (data.error === 'Already purchased') {
+          setAlreadyPurchased(true)
+          setError('บัญชีนี้ปลดล็อกแพ็ก Deep แล้ว สามารถไปที่ Dashboard ได้เลย')
+        } else {
+          setError(data.error ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่')
+        }
+        setLoading(false)
+        return
+      }
+
+      if (!data.url) {
+        setError('ไม่พบลิงก์สำหรับชำระเงิน กรุณาลองใหม่')
+        setLoading(false)
+        return
+      }
+
+      window.location.href = data.url
+    } catch {
+      setError('เชื่อมต่อระบบชำระเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
       setLoading(false)
-      setError(data.error ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่')
-      return
     }
-
-    window.location.href = data.url
   }
 
   if (checkingAuth) return null
@@ -98,249 +163,413 @@ function CheckoutContent() {
   return (
     <main
       id="main"
-      className="min-h-screen lg:flex lg:items-center lg:justify-center lg:p-8"
-      style={{ background: '#e8ecef' }}
+      className="min-h-screen overflow-hidden px-4 py-5 sm:px-6 sm:py-8 lg:flex lg:items-center lg:justify-center lg:px-8"
+      style={{
+        background: `
+          radial-gradient(circle at top left, rgba(120,150,168,0.22), transparent 28%),
+          radial-gradient(circle at bottom right, rgba(35,54,67,0.18), transparent 30%),
+          linear-gradient(180deg, #edf1f3 0%, #e3e8eb 100%)
+        `,
+      }}
     >
-      {/* ── Card shell: stacked on mobile/tablet, side-by-side on desktop ── */}
-      <div className="w-full lg:max-w-5xl lg:rounded-[2rem] lg:overflow-hidden lg:shadow-[0_32px_80px_rgba(15,23,42,0.14)] lg:flex lg:min-h-[600px]">
-
-        {/* ════ LEFT COLUMN — hero / value prop ════ */}
+      <div className="relative w-full max-w-6xl">
         <div
-          className="px-7 pt-10 pb-9 sm:px-10 lg:flex-[3] lg:px-12 lg:py-14"
-          style={{ background: 'linear-gradient(150deg, #456276 0%, #233643 100%)' }}
-        >
-          {/* eyebrow */}
-          <div className="mb-7">
-            <span
-              className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-[0.2em] uppercase px-3 py-1.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.72)' }}
-            >
+          className="pointer-events-none absolute -left-14 top-10 h-44 w-44 rounded-full blur-3xl"
+          style={{ background: 'rgba(69,98,118,0.18)' }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -right-10 bottom-10 h-48 w-48 rounded-full blur-3xl"
+          style={{ background: 'rgba(35,54,67,0.14)' }}
+          aria-hidden="true"
+        />
+
+        <div className="relative overflow-hidden rounded-[2.25rem] bg-white shadow-[0_36px_100px_rgba(15,23,42,0.12)] lg:grid lg:grid-cols-[minmax(0,1.18fr)_minmax(360px,0.82fr)]">
+          <section
+            className="relative px-6 pb-8 pt-8 sm:px-8 sm:pb-10 sm:pt-10 lg:px-12 lg:pb-12 lg:pt-12"
+            style={{ background: 'linear-gradient(155deg, #4d6a7f 0%, #233643 58%, #1f313c 100%)' }}
+          >
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-40"
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.07), transparent)' }}
+              aria-hidden="true"
+            />
+
+            <div className="relative">
               <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.6)', boxShadow: '0 0 6px rgba(255,255,255,0.5)' }}
-                aria-hidden="true"
-              />
-              IPIP-NEO-120 · มาตรฐานวิจัยระดับโลก
-            </span>
-          </div>
+                className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em]"
+                style={{ background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.76)' }}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ background: '#c7d6df', boxShadow: '0 0 10px rgba(199,214,223,0.8)' }}
+                  aria-hidden="true"
+                />
+                Deep analysis pass
+              </span>
 
-          {/* headline */}
-          <h1
-            className="text-[2.2rem] sm:text-[2.6rem] leading-[1.1] font-bold tracking-[-0.03em] text-white mb-3"
-            style={{ fontFamily: 'var(--font-display), Georgia, serif' }}
-          >
-            รู้จักตัวเอง<br />ใน 30 มิติ
-          </h1>
-          <p
-            className="text-[13.5px] leading-relaxed max-w-xs"
-            style={{ color: 'rgba(255,255,255,0.56)' }}
-          >
-            ไม่ใช่แค่ Big Five — แต่ทุก Facet ที่ทำให้คุณเป็นคุณ
-            วิเคราะห์โดย AI เชิงลึก 2,500 คำ
-          </p>
+              <h1
+                className="mt-6 max-w-3xl text-[2.3rem] font-bold leading-[1.04] tracking-[-0.035em] text-white sm:text-[2.9rem] lg:text-[3.35rem]"
+                style={{ fontFamily: 'var(--font-display), Georgia, serif' }}
+              >
+                ปลดล็อกบุคลิกภาพ
+                <br />
+                ที่ละเอียดกว่า
+                <br />
+                คะแนน 5 ด้าน
+              </h1>
 
-          {/* ── Biological facet bars ── */}
-          <div className="mt-9 space-y-3.5">
-            {OCEAN_DIM.map(d => (
-              <div key={d.letter}>
-                <div className="flex items-center gap-2 mb-1.5">
+              <p
+                className="mt-5 max-w-2xl text-[14px] leading-7 sm:text-[15px]"
+                style={{ color: 'rgba(255,255,255,0.68)' }}
+              >
+                คุณไม่ได้ซื้อแค่รายงานหนึ่งฉบับ แต่กำลังปลดล็อกระบบวิเคราะห์บุคลิกภาพทั้งชุด:
+                แบบทดสอบ 120 ข้อ, research tier 300 ข้อ, รายงาน AI เชิงลึก, dashboard เก็บผล,
+                compare สองโปรไฟล์ และเครื่องมือแชร์ผลต่อยอดกับคนสำคัญ
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {[
+                  'IPIP-NEO มาตรฐานงานวิจัย',
+                  '30 facets ที่ใช้อธิบายตัวตนได้ลึกขึ้น',
+                  '300 ข้อรวมอยู่ในราคาเดียว',
+                ].map((pill) => (
                   <span
-                    className="text-[10px] font-bold tracking-[0.16em] uppercase w-3"
-                    style={{ color: 'rgba(255,255,255,0.45)' }}
+                    key={pill}
+                    className="rounded-full px-3 py-1.5 text-[11px] font-medium"
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      color: 'rgba(255,255,255,0.84)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                    }}
                   >
-                    {d.letter}
+                    {pill}
                   </span>
-                  <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.28)' }}>{d.label}</span>
-                  <span className="ml-auto text-[9px]" style={{ color: 'rgba(255,255,255,0.26)' }}>6 facets</span>
-                </div>
-                <div className="flex gap-1">
-                  {d.facets.map((pct, i) => (
+                ))}
+              </div>
+
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {FEATURE_STORIES.map((item) => (
+                  <article
+                    key={item.title}
+                    className="rounded-[1.5rem] px-4 py-4"
+                    style={{
+                      background: 'rgba(255,255,255,0.07)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      backdropFilter: 'blur(10px)',
+                    }}
+                  >
                     <div
-                      key={i}
-                      className="flex-1 rounded-full overflow-hidden"
-                      style={{ height: '4px', background: 'rgba(255,255,255,0.09)' }}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-2xl"
+                      style={{ background: 'rgba(255,255,255,0.13)', color: 'rgba(255,255,255,0.88)' }}
                     >
+                      {item.icon}
+                    </div>
+                    <h2 className="mt-4 text-[15px] font-semibold leading-6" style={{ color: 'rgba(255,255,255,0.95)' }}>
+                      {item.title}
+                    </h2>
+                    <p className="mt-2 text-[12.5px] leading-6" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      {item.desc}
+                    </p>
+                  </article>
+                ))}
+              </div>
+
+              <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-start">
+                <div
+                  className="rounded-[1.75rem] px-5 py-5"
+                  style={{ background: 'rgba(7,12,18,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                        Depth preview
+                      </p>
+                      <p className="mt-2 text-[1.45rem] font-semibold leading-tight text-white">
+                        จากโดเมนหลัก
+                        <br />
+                        ไปสู่ 30 facets
+                      </p>
+                    </div>
+                    <div
+                      className="rounded-2xl px-3 py-2 text-right"
+                      style={{ background: 'rgba(255,255,255,0.06)' }}
+                    >
+                      <p className="text-[1.1rem] font-bold tabular-nums text-white">5 → 30</p>
+                      <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>resolution</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-3.5">
+                    {OCEAN_DIM.map((dimension) => (
+                      <div key={dimension.letter}>
+                        <div className="mb-1.5 flex items-center gap-2">
+                          <span
+                            className="w-3 text-[10px] font-bold uppercase tracking-[0.16em]"
+                            style={{ color: 'rgba(255,255,255,0.52)' }}
+                          >
+                            {dimension.letter}
+                          </span>
+                          <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.34)' }}>
+                            {dimension.label}
+                          </span>
+                          <span className="ml-auto text-[9px]" style={{ color: 'rgba(255,255,255,0.26)' }}>
+                            6 facets
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5">
+                          {dimension.facets.map((pct, index) => (
+                            <div
+                              key={`${dimension.letter}-${index}`}
+                              className="h-[4px] flex-1 overflow-hidden rounded-full"
+                              style={{ background: 'rgba(255,255,255,0.09)' }}
+                            >
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${pct}%`,
+                                  background: `hsl(${dimension.hue}, 60%, 68%)`,
+                                  boxShadow: `0 0 5px hsl(${dimension.hue}, 60%, 68%)`,
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div
+                  className="rounded-[1.75rem] px-5 py-5"
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    {VALUE_METRICS.map((metric) => (
                       <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${pct}%`,
-                          background: `hsl(${d.hue},60%,68%)`,
-                          boxShadow: `0 0 5px hsl(${d.hue},60%,68%)`,
-                        }}
-                      />
+                        key={metric.value}
+                        className="rounded-2xl px-4 py-4"
+                        style={{ background: 'rgba(0,0,0,0.16)' }}
+                      >
+                        <p className="text-[1.45rem] font-bold leading-none tabular-nums text-white">
+                          {metric.value}
+                        </p>
+                        <p className="mt-2 text-[10px] uppercase tracking-[0.16em]" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                          {metric.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'rgba(255,255,255,0.42)' }}>
+                      สิ่งที่ปลดล็อกทันที
+                    </p>
+                    <div className="mt-3 space-y-2.5">
+                      {INCLUDED_NOW.slice(0, 4).map((item) => (
+                        <div key={item} className="flex items-start gap-2.5">
+                          <CheckIcon tone="dark" />
+                          <p className="text-[13px] leading-6" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                            {item}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside className="relative bg-white px-6 pb-8 pt-7 sm:px-8 sm:pb-10 sm:pt-8 lg:px-9 lg:pb-10 lg:pt-10">
+            <div className="space-y-5">
+              <div
+                className="rounded-[1.75rem] px-5 py-5"
+                style={{ background: 'linear-gradient(180deg, rgba(244,247,249,0.98), rgba(255,255,255,0.98))' }}
+              >
+                <span
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.2em]"
+                  style={{ background: 'white', color: '#456276', border: '1px solid rgba(69,98,118,0.12)' }}
+                >
+                  One-time unlock
+                </span>
+
+                <h2
+                  className="mt-4 text-[2rem] font-bold leading-[1.08] tracking-[-0.03em]"
+                  style={{ fontFamily: 'var(--font-display), Georgia, serif', color: '#1a3040' }}
+                >
+                  แพ็กเดียวที่ปลดล็อก
+                  <br />
+                  ทั้ง Deep + Research
+                </h2>
+
+                <div className="mt-5 flex items-end gap-2">
+                  <span className="text-[1.4rem] font-medium" style={{ color: '#628092' }}>฿</span>
+                  <span className="text-[4.4rem] font-bold leading-none tabular-nums" style={{ color: '#223845' }}>
+                    49
+                  </span>
+                </div>
+
+                <p className="mt-3 text-[13px] leading-6" style={{ color: '#55707f' }}>
+                  ชำระครั้งเดียว ไม่มีค่าสมาชิกรายเดือน และไม่ต้องซื้อ 300 ข้อเพิ่มแยกอีกครั้ง
+                </p>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                  {[
+                    'ใช้ได้กับ 120 และ 300 ข้อ',
+                    'เก็บผลไว้ใน dashboard',
+                    'ชำระผ่าน Stripe อย่างปลอดภัย',
+                  ].map((note) => (
+                    <div
+                      key={note}
+                      className="rounded-2xl px-3.5 py-3 text-[12px] font-medium"
+                      style={{ background: 'white', color: '#355062', border: '1px solid rgba(69,98,118,0.1)' }}
+                    >
+                      {note}
                     </div>
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* ── Stats strip ── */}
-          <div
-            className="mt-8 grid grid-cols-3 rounded-2xl overflow-hidden"
-            style={{ background: 'rgba(0,0,0,0.2)' }}
-          >
-            {[
-              { value: '120', sub: 'คำถาม' },
-              { value: '30',  sub: '30 Facets' },
-              { value: '2,500', sub: 'คำ AI' },
-            ].map((s, i) => (
-              <div
-                key={s.value}
-                className="py-3.5 text-center"
-                style={{ borderRight: i < 2 ? '1px solid rgba(255,255,255,0.07)' : undefined }}
-              >
-                <p className="text-[1.2rem] font-bold tabular-nums text-white leading-none">{s.value}</p>
-                <p className="text-[9px] mt-0.5 tracking-wide uppercase" style={{ color: 'rgba(255,255,255,0.38)' }}>{s.sub}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Feature list — frosted glass on dark ── */}
-          <div className="mt-7 space-y-2">
-            {FEATURES.map(f => (
-              <div
-                key={f.title}
-                className="flex items-start gap-3 px-4 py-3.5 rounded-2xl"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
-              >
-                <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                  style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)' }}
-                >
-                  {f.icon}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[12.5px] font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>{f.title}</p>
-                  <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{f.desc}</p>
+              <div className="rounded-[1.5rem] bg-[#f4f7f9] px-5 py-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: '#8aa0ad' }}>
+                  รวมอยู่ในราคา
+                </p>
+                <div className="mt-3 space-y-2.5">
+                  {INCLUDED_NOW.map((item) => (
+                    <div key={item} className="flex items-start gap-2.5">
+                      <CheckIcon />
+                      <p className="text-[13px] leading-6" style={{ color: '#3d5a6a' }}>
+                        {item}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* ════ RIGHT COLUMN — checkout actions ════ */}
-        <div
-          className="px-7 pt-7 pb-9 sm:px-10 lg:flex-[2] lg:px-10 lg:py-14 flex flex-col justify-between gap-6"
-          style={{ background: 'white' }}
-        >
-          <div className="space-y-5">
+              <div className="rounded-[1.5rem] bg-[#fbfcfd] px-5 py-5" style={{ border: '1px solid rgba(108,124,136,0.12)' }}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: '#8aa0ad' }}>
+                  หลังชำระเงิน
+                </p>
+                <div className="mt-3 space-y-3">
+                  {FLOW_STEPS.map((item) => (
+                    <div key={item.step} className="flex items-start gap-3">
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                        style={{ background: '#e7eef2', color: '#355062' }}
+                      >
+                        {item.step}
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-semibold" style={{ color: '#233845' }}>
+                          {item.title}
+                        </p>
+                        <p className="mt-1 text-[12px] leading-5" style={{ color: '#708896' }}>
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            {/* ── What's included (desktop accent) ── */}
-            <div className="hidden lg:block">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-3" style={{ color: '#96a8b2' }}>
-                รวมอยู่ในราคา
-              </p>
-              <div className="space-y-2.5">
-                {[
-                  'รายงาน AI ส่วนตัว 2,500 คำ',
-                  'ผล 30 Facets วิเคราะห์ละเอียด',
-                  'บันทึกผลในระบบตลอดไป',
-                  'เปรียบเทียบกับทีมและเพื่อน',
-                ].map(item => (
-                  <div key={item} className="flex items-center gap-2.5">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style={{ color: '#456276', flexShrink: 0 }}>
-                      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3"/>
-                      <path d="M4.5 7l1.8 1.8 3.2-3.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              {cancelled && (
+                <div className="flex items-start gap-2.5 rounded-[1.25rem] px-4 py-3.5" style={{ background: 'rgba(245,158,11,0.07)' }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="mt-0.5 shrink-0" style={{ color: '#d97706' }} aria-hidden="true">
+                    <path d="M7 2L13 12H1L7 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+                    <path d="M7 6v3M7 10.5v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                  </svg>
+                  <p className="text-[12px] leading-5" style={{ color: '#92400e' }}>
+                    คุณยกเลิกการชำระเงินไว้ก่อน สามารถกลับมาปลดล็อกเมื่อพร้อมได้ทุกเมื่อ
+                  </p>
+                </div>
+              )}
+
+              {error && (
+                <div className="rounded-[1.25rem] px-4 py-3.5" style={{ background: alreadyPurchased ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.06)' }}>
+                  <div className="flex items-start gap-2.5">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="mt-0.5 shrink-0" style={{ color: alreadyPurchased ? '#059669' : '#ef4444' }} aria-hidden="true">
+                      {alreadyPurchased ? (
+                        <>
+                          <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
+                          <path d="M4.7 7.1l1.6 1.6 3.2-3.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3" />
+                          <path d="M7 4.5V7.5M7 9v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                        </>
+                      )}
                     </svg>
-                    <span className="text-[12px]" style={{ color: '#3d5a6a' }}>{item}</span>
+                    <div className="min-w-0">
+                      <p className="text-[12px] leading-5" style={{ color: alreadyPurchased ? '#047857' : '#b91c1c' }}>
+                        {error}
+                      </p>
+                      {alreadyPurchased && (
+                        <Link href="/dashboard" className="mt-2 inline-flex text-[12px] font-semibold" style={{ color: '#047857' }}>
+                          ไปที่ Dashboard →
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                ))}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleCheckout}
+                  disabled={loading}
+                  className="primary-button w-full justify-center text-base"
+                  style={{
+                    minHeight: '3.55rem',
+                    background: loading
+                      ? 'rgba(69,98,118,0.45)'
+                      : 'linear-gradient(135deg, #456276 0%, #2c4350 100%)',
+                    boxShadow: loading ? 'none' : '0 14px 34px rgba(44,67,80,0.24)',
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin" width="15" height="15" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                        <circle cx="7" cy="7" r="5.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.3" />
+                        <path d="M12.5 7a5.5 5.5 0 0 0-5.5-5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                      กำลังพาไปชำระเงิน...
+                    </>
+                  ) : (
+                    <>
+                      ปลดล็อกทั้งหมดในราคา ฿49
+                      <span aria-hidden="true">→</span>
+                    </>
+                  )}
+                </button>
+
+                {alreadyPurchased ? (
+                  <Link href="/dashboard" className="secondary-button w-full justify-center text-sm">
+                    ไปที่ Dashboard
+                  </Link>
+                ) : (
+                  <Link href="/" className="secondary-button w-full justify-center text-sm">
+                    <span aria-hidden="true">←</span>
+                    กลับไปดูหน้าหลัก
+                  </Link>
+                )}
               </div>
             </div>
 
-            {/* ── Price ── */}
-            <div
-              className="flex items-center justify-between px-5 py-4 rounded-2xl lg:rounded-xl"
-              style={{ background: '#f4f7f9' }}
-            >
-              <div>
-                <p className="text-[13px] font-semibold" style={{ color: '#1a3040' }}>ชำระครั้งเดียว</p>
-                <p className="text-[11px] mt-0.5" style={{ color: '#96a8b2' }}>ไม่มีค่าสมาชิกรายเดือน</p>
+            <div className="mt-6 border-t pt-5" style={{ borderColor: 'rgba(108,124,136,0.12)' }}>
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-[11px]" style={{ color: '#8aa0ad' }}>
+                <span>ปลอดภัย</span>
+                <span>·</span>
+                <span>Stripe Checkout</span>
+                <span>·</span>
+                <span>ไม่มีค่ารายเดือน</span>
+                <span>·</span>
+                <span>ปลดล็อกได้ทันทีหลังชำระ</span>
               </div>
-              <p className="text-[2rem] font-bold tabular-nums leading-none" style={{ color: '#2c4350' }}>฿49</p>
             </div>
-
-            {/* ── Notices ── */}
-            {cancelled && (
-              <div
-                className="flex items-start gap-2.5 px-4 py-3.5 rounded-2xl"
-                style={{ background: 'rgba(245,158,11,0.07)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 mt-0.5" style={{ color: '#d97706' }} aria-hidden="true">
-                  <path d="M7 2L13 12H1L7 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
-                  <path d="M7 6v3M7 10.5v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
-                <p className="text-[12px]" style={{ color: '#92400e' }}>ยกเลิกการชำระเงิน — สามารถกลับมาชำระได้ทุกเมื่อ</p>
-              </div>
-            )}
-            {error && (
-              <div
-                className="flex items-start gap-2.5 px-4 py-3.5 rounded-2xl"
-                style={{ background: 'rgba(239,68,68,0.06)' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 mt-0.5" style={{ color: '#ef4444' }} aria-hidden="true">
-                  <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.3"/>
-                  <path d="M7 4.5V7.5M7 9v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-                </svg>
-                <p className="text-[12px]" style={{ color: '#b91c1c' }}>{error}</p>
-              </div>
-            )}
-
-            {/* ── CTA ── */}
-            <button
-              onClick={handleCheckout}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 font-semibold text-white rounded-2xl transition-all"
-              style={{
-                minHeight: '3.25rem',
-                fontSize: '14px',
-                background: loading
-                  ? 'rgba(69,98,118,0.45)'
-                  : 'linear-gradient(135deg, #456276 0%, #2c4350 100%)',
-                boxShadow: loading ? 'none' : '0 10px 28px rgba(44,67,80,0.24)',
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loading
-                ? <>
-                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                      <circle cx="7" cy="7" r="5.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.3"/>
-                      <path d="M12.5 7a5.5 5.5 0 0 0-5.5-5.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    กำลังนำไปชำระเงิน…
-                  </>
-                : 'ชำระเงิน ฿49 →'
-              }
-            </button>
-          </div>
-
-          {/* ── Bottom: trust + back ── */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-center gap-3 text-[10px]" style={{ color: '#96a8b2' }}>
-              <span className="flex items-center gap-1">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                  <path d="M5 1L2 2.5V5.5C2 7.5 3.5 9 5 9.5 6.5 9 8 7.5 8 5.5V2.5L5 1z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
-                </svg>
-                ปลอดภัย
-              </span>
-              <span>·</span>
-              <span>ชำระผ่าน Stripe</span>
-              <span>·</span>
-              <span>ไม่มีค่ารายเดือน</span>
-            </div>
-            <div className="text-center">
-              <Link
-                href="/"
-                className="text-[12px] transition-colors hover:opacity-80"
-                style={{ color: '#7a9aaa' }}
-              >
-                ← กลับหน้าหลัก
-              </Link>
-            </div>
-          </div>
+          </aside>
         </div>
-
       </div>
     </main>
   )
@@ -348,11 +577,13 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={
-      <div className="flex h-screen items-center justify-center" style={{ background: '#e8ecef' }}>
-        <div className="loading-line" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center" style={{ background: '#e8ecef' }}>
+          <div className="loading-line" />
+        </div>
+      }
+    >
       <CheckoutContent />
     </Suspense>
   )

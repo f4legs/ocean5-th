@@ -11,7 +11,7 @@ create table if not exists user_profiles (
 );
 
 -- All OCEAN profiles in a user's library
--- source: 'test' = own paid quiz, 'upload' = imported JSON, 'shared' = from friend invite
+-- source: 'test' = own paid quiz, 'upload' = imported JSON, 'shared' = shared from invite/share link
 create table if not exists ocean_profiles (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
@@ -48,6 +48,21 @@ create table if not exists friend_invites (
   expires_at timestamptz default now() + interval '7 days'
 );
 
+-- Paid member profile sharing links (one-time, own-test only)
+create table if not exists profile_share_links (
+  code text primary key,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  owner_label text,
+  profile_id uuid not null references ocean_profiles(id) on delete cascade,
+  profile_label text,
+  test_type text not null check (test_type in ('50', '120', '300')),
+  status text not null default 'pending' check (status in ('pending', 'claimed')),
+  claimed_by uuid references auth.users(id) on delete set null,
+  claimed_at timestamptz,
+  created_at timestamptz default now(),
+  expires_at timestamptz default now() + interval '7 days'
+);
+
 -- Stripe payment records
 create table if not exists payments (
   id uuid primary key default gen_random_uuid(),
@@ -78,6 +93,7 @@ alter table user_profiles enable row level security;
 alter table ocean_profiles enable row level security;
 alter table comparisons enable row level security;
 alter table friend_invites enable row level security;
+alter table profile_share_links enable row level security;
 alter table payments enable row level security;
 alter table quiz_drafts enable row level security;
 
@@ -99,6 +115,12 @@ create policy "own_invites_write" on friend_invites
 create policy "anyone_reads_invites" on friend_invites
   for select using (true);
 
+-- profile_share_links: owner manages their links; anyone can read for link validation
+create policy "own_profile_share_links_write" on profile_share_links
+  for all using (owner_id = auth.uid());
+create policy "anyone_reads_profile_share_links" on profile_share_links
+  for select using (true);
+
 -- payments: own rows only
 create policy "own_payments" on payments
   for all using (user_id = auth.uid());
@@ -118,3 +140,4 @@ create unique index if not exists idx_comparisons_unique_pair_method
 create index if not exists idx_payments_user on payments(user_id);
 create index if not exists idx_quiz_drafts_user on quiz_drafts(user_id);
 create index if not exists idx_friend_invites_code on friend_invites(code);
+create index if not exists idx_profile_share_links_code on profile_share_links(code);

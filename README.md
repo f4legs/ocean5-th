@@ -1,6 +1,6 @@
 # OCEAN Personality Platform
 
-Thai-language Big Five personality assessment using the IPIP-NEO framework. Three test tiers, AI-generated reports, profile comparison, and a friend invite system.
+Thai-language Big Five personality assessment using the IPIP-NEO framework. Three test tiers, AI-generated reports, profile comparison, friend invite links, and paid-member profile sharing links.
 
 ---
 
@@ -43,6 +43,7 @@ app/
 ├── results300/               # 300-item results
 ├── dashboard/                # Profile library + comparison (auth required)
 ├── invite/[code]/            # Friend invite acceptance
+├── share/[code]/             # Paid-member profile share acceptance
 └── api/
     ├── interpret/            # Stream AI report (50-item)
     ├── interpret-deep/       # Stream AI report (120/300)
@@ -54,6 +55,8 @@ app/
     ├── stripe-webhook/       # Handle checkout.session.completed
     ├── profiles/upload/      # Import JSON export
     ├── profiles/share/       # Friend submits results via invite
+    ├── profile-share/create/ # Create one-time paid-member share link
+    ├── profile-share/accept/ # Accept paid-member share link
     └── invite/               # Create friend invite link
 
 lib/
@@ -142,9 +145,10 @@ npm run build   # production build
 | `quiz_drafts` | Auto-saved quiz state every 2 seconds. Allows resuming mid-test. `test_type`: `120`/`300`. |
 | `payments` | Stripe payment records. `stripe_status`: `pending` → `paid` on webhook. |
 | `friend_invites` | 8-char invite codes with 7-day expiry. Anyone can read; owner creates. |
+| `profile_share_links` | One-time links to share `source='test'` profiles to other paid members. |
 | `comparisons` | Cached AI comparison reports between two profiles. |
 
-All tables use Row Level Security — users can only access their own rows, except `friend_invites` (public read for invite validation).
+All tables use Row Level Security — users can only access their own rows, except `friend_invites` and `profile_share_links` (public read for link validation).
 
 ---
 
@@ -158,6 +162,9 @@ All tables use Row Level Security — users can only access their own rows, exce
 
 **Friend invite:**
 Dashboard → `POST /api/invite` → share link → friend visits `/invite/[code]` → friend takes test → `POST /api/profiles/share` → owner sees friend's profile in dashboard
+
+**Paid-member profile share (own test only):**
+Dashboard → `POST /api/profile-share/create` (with `profileId` from `source='test'`) → recipient opens `/share/[code]` → `POST /api/profile-share/accept` → profile auto-added to recipient dashboard
 
 **Profile comparison:**
 Dashboard → select two profiles → `POST /api/compare` (streaming) → AI report → optional PDF via `POST /api/compare-pdf`

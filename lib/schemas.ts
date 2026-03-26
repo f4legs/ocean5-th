@@ -51,3 +51,11 @@ export const sharePayloadSchema = z.object({
   sessionId: z.uuid().optional(),
   testType: z.enum(['50', '120', '300']).optional(),
 })
+
+export const profileShareCreatePayloadSchema = z.object({
+  profileId: z.uuid(),
+})
+
+export const profileShareAcceptPayloadSchema = z.object({
+  code: z.string().min(8).max(32),
+})
