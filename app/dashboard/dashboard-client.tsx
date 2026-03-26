@@ -64,7 +64,8 @@ export default function DashboardClient() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editLabel, setEditLabel] = useState('')
 
-  const [activeView, setActiveView] = useState<'default' | 'compare' | 'group-compare'>('default')
+  const [activeView, setActiveView] = useState<'default' | 'compare' | 'group-compare' | 'profile'>('default')
+  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -120,25 +121,9 @@ export default function DashboardClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedA, selectedB, userId])
 
-  function handleSelectProfile(id: string) {
-    if (selectedA === id) {
-      setSelectedA(null)
-      return
-    }
-    if (selectedB === id) {
-      setSelectedB(null)
-      return
-    }
-    if (!selectedA) {
-      setSelectedA(id)
-    } else if (!selectedB) {
-      setSelectedB(id)
-    } else {
-      // Replace A, shift B→A
-      setSelectedA(selectedB)
-      setSelectedB(id)
-    }
-    setAiReport('')
+  function handleViewProfile(id: string) {
+    setViewingProfileId(id)
+    setActiveView('profile')
   }
 
   async function handleCompare() {
@@ -315,7 +300,7 @@ export default function DashboardClient() {
 
               <nav className="mt-6 flex flex-col gap-0.5">
                 <button
-                  onClick={() => setActiveView('default')}
+                  onClick={() => { setActiveView('default'); setViewingProfileId(null) }}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors text-sm ${activeView === 'default' ? navActive : navIdle}`}
                 >
                   <IconHome />
@@ -323,7 +308,7 @@ export default function DashboardClient() {
                 </button>
 
                 <button
-                  onClick={() => setActiveView('compare')}
+                  onClick={() => { setActiveView('compare'); setViewingProfileId(null) }}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors text-sm ${activeView === 'compare' ? navActive : navIdle}`}
                 >
                   <IconBarChart />
@@ -331,7 +316,7 @@ export default function DashboardClient() {
                 </button>
 
                 <button
-                  onClick={() => setActiveView('group-compare')}
+                  onClick={() => { setActiveView('group-compare'); setViewingProfileId(null) }}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors text-sm ${activeView === 'group-compare' ? navActive : navIdle}`}
                 >
                   <IconUsers />
@@ -440,11 +425,10 @@ export default function DashboardClient() {
                       <ProfileGroup
                         title={SOURCE_LABELS.test}
                         profiles={myTests}
-                        selectedA={selectedA}
-                        selectedB={selectedB}
+                        viewingProfileId={viewingProfileId}
                         editingId={editingId}
                         editLabel={editLabel}
-                        onSelect={handleSelectProfile}
+                        onView={handleViewProfile}
                         onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
                         onSaveEdit={handleRename}
                         onEditChange={setEditLabel}
@@ -455,11 +439,10 @@ export default function DashboardClient() {
                       <ProfileGroup
                         title={SOURCE_LABELS.upload}
                         profiles={uploaded}
-                        selectedA={selectedA}
-                        selectedB={selectedB}
+                        viewingProfileId={viewingProfileId}
                         editingId={editingId}
                         editLabel={editLabel}
-                        onSelect={handleSelectProfile}
+                        onView={handleViewProfile}
                         onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
                         onSaveEdit={handleRename}
                         onEditChange={setEditLabel}
@@ -470,11 +453,10 @@ export default function DashboardClient() {
                       <ProfileGroup
                         title={SOURCE_LABELS.shared}
                         profiles={shared}
-                        selectedA={selectedA}
-                        selectedB={selectedB}
+                        viewingProfileId={viewingProfileId}
                         editingId={editingId}
                         editLabel={editLabel}
-                        onSelect={handleSelectProfile}
+                        onView={handleViewProfile}
                         onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
                         onSaveEdit={handleRename}
                         onEditChange={setEditLabel}
@@ -817,6 +799,147 @@ export default function DashboardClient() {
                 </p>
               </div>
             )}
+
+            {activeView === 'profile' && viewingProfileId && (
+              <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {(() => {
+                  const p = profiles.find(prof => prof.id === viewingProfileId)
+                  if (!p) return <p className="p-8 text-center text-slate-400">Profile not found</p>
+
+                  return (
+                    <>
+                      {/* Header Card */}
+                      <div className="glass-panel rounded-[2rem] px-8 py-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                          <div>
+                            <span className="eyebrow">
+                              <span className="accent-dot" aria-hidden="true" />
+                              Profile Details • {SOURCE_LABELS[p.source]}
+                            </span>
+                            <h2 className="display-title mt-4 text-3xl">{p.label}</h2>
+                            <div className="mt-3 flex items-center gap-2">
+                              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${TIER_COLORS[p.test_type]}`}>
+                                {p.test_type} Items
+                              </span>
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                ทดสอบเมื่อ {new Date(p.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => {
+                                setSelectedA(p.id)
+                                setActiveView('compare')
+                                setViewingProfileId(null)
+                              }}
+                              className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all shadow-sm flex items-center gap-2"
+                            >
+                              <IconBarChart />
+                              <span>Compare this Profile</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Scores Card */}
+                      <div className="glass-panel rounded-2xl px-8 py-8">
+                        <div className="flex items-center justify-between mb-8">
+                          <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Personality Dimensions</h3>
+                          <div className="h-px flex-1 mx-6 bg-slate-100" />
+                        </div>
+                        
+                        <div className="grid gap-x-12 gap-y-8 md:grid-cols-1">
+                          {FACTOR_ORDER.map(factor => {
+                            const info = DIMENSION_INFO[factor]
+                            const score = p.scores.pct[factor]
+                            
+                            return (
+                              <div key={factor} className="group">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <span className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 group-hover:bg-white group-hover:border-slate-200 transition-colors">
+                                      {factor}
+                                    </span>
+                                    <span className="text-sm font-bold text-slate-700">{info.label}</span>
+                                  </div>
+                                  <span className="text-sm font-black text-slate-900 tabular-nums">{Math.round(score)}%</span>
+                                </div>
+                                <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden relative">
+                                  <div 
+                                    className="h-full rounded-full bg-[var(--accent)] transition-all duration-1000 ease-out" 
+                                    style={{ 
+                                      width: `${score}%`,
+                                      background: `linear-gradient(90deg, var(--accent) 0%, var(--accent-strong) 100%)`
+                                    }} 
+                                  />
+                                </div>
+                                <p className="mt-2 text-[11px] text-slate-400 leading-relaxed max-w-2xl">
+                                  {info.description}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {p.scores.facets && (
+                          <details className="mt-10 pt-6 border-t border-slate-100 group/details">
+                            <summary className="cursor-pointer flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors list-none select-none">
+                              <span className="w-4 h-4 rounded border border-slate-200 flex items-center justify-center group-open/details:rotate-90 transition-transform">
+                                <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2.5 1.5L5 4L2.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </span>
+                              Detailed Analysis (30 Facets)
+                            </summary>
+                            <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+                              {Object.entries(FACET_NAMES).map(([code, name]) => {
+                                const facet = p.scores.facets?.[code]
+                                if (!facet) return null
+                                return (
+                                  <div key={code} className="flex items-center justify-between py-1.5 border-b border-slate-50">
+                                    <span className="text-[11px] text-slate-500 truncate pr-4">{name}</span>
+                                    <span className="text-[11px] font-bold text-slate-700 tabular-nums">{Math.round(facet.pct)}%</span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+
+                      {/* AI Report Card */}
+                      {p.ai_report ? (
+                        <div className="glass-panel rounded-[2rem] px-8 py-10">
+                          <div className="flex items-center gap-4 mb-8">
+                            <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500">
+                              <IconBot />
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-bold text-slate-800">Deep AI Personality Analysis</h3>
+                              <p className="text-[11px] text-slate-400 mt-0.5">Generative AI Insight based on your unique profile</p>
+                            </div>
+                          </div>
+                          <div className="prose prose-sm max-w-none text-slate-600 prose-headings:text-slate-900 prose-p:leading-relaxed">
+                            <ReactMarkdown>{p.ai_report}</ReactMarkdown>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="glass-panel rounded-[2rem] px-8 py-12 text-center">
+                          <div className="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center mx-auto mb-6 text-slate-300">
+                            <IconBot />
+                          </div>
+                          <h3 className="text-lg font-bold text-slate-800">No Deep Report Available</h3>
+                          <p className="mt-2 text-sm text-slate-500 max-w-sm mx-auto">
+                            You haven&apos;t generated a deep analysis for this profile yet. Complete a 120 or 300 item test to unlock AI insights.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
+            )}
+
           </div>
 
         </div>
@@ -828,16 +951,15 @@ export default function DashboardClient() {
 // ── Sub-components ─────────────────────────────────────────────────────────
 
 function ProfileGroup({
-  title, profiles, selectedA, selectedB, editingId, editLabel,
-  onSelect, onStartEdit, onSaveEdit, onEditChange, onDelete,
+  title, profiles, viewingProfileId, editingId, editLabel,
+  onView, onStartEdit, onSaveEdit, onEditChange, onDelete,
 }: {
   title: string
   profiles: OceanProfile[]
-  selectedA: string | null
-  selectedB: string | null
+  viewingProfileId: string | null
   editingId: string | null
   editLabel: string
-  onSelect: (id: string) => void
+  onView: (id: string) => void
   onStartEdit: (id: string, label: string) => void
   onSaveEdit: (id: string, label: string) => void
   onEditChange: (v: string) => void
@@ -848,24 +970,22 @@ function ProfileGroup({
       <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-faint)] mb-2 px-1">{title}</p>
       <div className="space-y-0.5">
         {profiles.map(p => {
-          const isA = selectedA === p.id
-          const isB = selectedB === p.id
+          const isActive = viewingProfileId === p.id
           const isEditing = editingId === p.id
 
           return (
             <div
               key={p.id}
               className={`group flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer transition-colors ${
-                isA ? 'bg-blue-50 ring-1 ring-blue-200' :
-                isB ? 'bg-purple-50 ring-1 ring-purple-200' :
+                isActive ? 'bg-[var(--accent-soft)] ring-1 ring-[var(--accent-strong)]/10' :
                 'hover:bg-slate-50'
               }`}
-              onClick={() => !isEditing && onSelect(p.id)}
+              onClick={() => !isEditing && onView(p.id)}
             >
-              {/* Selection indicator */}
-              <span className={`text-xs font-bold w-4 shrink-0 ${isA ? 'text-blue-500' : isB ? 'text-purple-500' : 'text-transparent'}`}>
-                {isA ? 'A' : isB ? 'B' : '○'}
-              </span>
+              {/* Active indicator dot */}
+              <div className="w-1.5 h-1.5 shrink-0 rounded-full flex items-center justify-center">
+                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />}
+              </div>
 
               {/* Label (editable) */}
               {isEditing ? (
