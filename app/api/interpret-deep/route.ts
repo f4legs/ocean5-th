@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI, ThinkingLevel } from '@google/genai'
 import { FACET_NAMES } from '@/lib/scoring120'
+import { normalizeMarkdown } from '@/lib/markdown'
 import { supabaseAdmin } from '@/utils/supabase/admin'
 
 export const maxDuration = 300
@@ -36,7 +37,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'คุณส่งคำขอบ่อยเกินไป กรุณารอสักครู่' }, { status: 429 })
   }
 
-  const body = await req.json()
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+
   const { domainScores, facetScores, profile, testType, profileId } = body as {
     domainScores: Record<string, number>
     facetScores: Record<string, { pct: number }>
@@ -77,6 +84,7 @@ export async function POST(req: NextRequest) {
   const prompt = `You are an expert clinical psychologist specializing in NEO-PI-R facet-level assessment. DO NOT mention who you are.
 
 Write the entire report in Thai (ภาษาไทย). Use English only for psychological terminology in parentheses.
+Output valid GitHub-flavored Markdown only. Do not wrap the entire response in triple backticks.
 
 ผลการทดสอบ OCEAN เชิงลึก (${testType} ข้อ, IPIP-NEO):
 
@@ -135,10 +143,11 @@ ${profileLines ? `ข้อมูลส่วนตัว:\n${profileLines}` : '
           }
         } finally {
           controller.close()
-          if (profileId && fullReport.trim()) {
+          const normalizedReport = normalizeMarkdown(fullReport)
+          if (profileId && normalizedReport) {
             supabaseAdmin
               .from('ocean_profiles')
-              .update({ ai_report: fullReport.trim() })
+              .update({ ai_report: normalizedReport })
               .eq('id', profileId)
               .then(({ error }) => {
                 if (error) console.error('Failed to save deep AI report:', error)

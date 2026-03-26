@@ -9,6 +9,7 @@ import { STORAGE_KEYS } from '@/lib/storage-keys'
 import { getItemAsync, removeItem, setItem } from '@/lib/storage'
 import ReferenceNote from '@/components/reference-note'
 import { FACTOR_ORDER, DOMAIN_COLORS as DIMENSION_STYLES, pctToLabel, formatDuration } from '@/lib/ocean-constants'
+import { normalizeMarkdown } from '@/lib/markdown'
 import {
   buildExport, buildJsonFile, buildPdfFile, shareOrDownloadFile,
   buildReportSignature, readCachedReport,
@@ -80,12 +81,7 @@ export default function ResultsClient() {
 
         if (requestId !== activeRequestId.current) return
 
-        // Normalize the complete text: strip code fence wrapper, fix headings
-        const normalized = accumulated
-          .trim()
-          .replace(/^```[a-z]*\n/, '').replace(/\n```$/, '').trim()
-          .replace(/^(#{1,6})([^\s#\n])/gm, '$1 $2')
-          .replace(/([^\n])\n(#{1,6} )/g, '$1\n\n$2')
+        const normalized = normalizeMarkdown(accumulated)
 
         setReport(normalized)
 
@@ -175,6 +171,7 @@ export default function ResultsClient() {
         const result = calcScores(parsedAnswers)
         const reportSignature = buildReportSignature(result.pct, profileData)
         const cachedReport = readCachedReport(rawCachedReport, sessionData.sessionId, reportSignature)
+        const normalizedCachedReport = normalizeMarkdown(cachedReport ?? '')
 
         if (cancelled) return
 
@@ -184,8 +181,8 @@ export default function ResultsClient() {
         setSession(sessionData)
         setPageDurations(pageDurData)
         setResponseTimes(rtData)
-        setReport(cachedReport ?? '')
-        setLoading(!cachedReport)
+        setReport(normalizedCachedReport)
+        setLoading(!normalizedCachedReport)
         setError(null)
 
         const storedCode = localStorage.getItem(STORAGE_KEYS.FRIEND_INVITE_CODE)
@@ -195,7 +192,7 @@ export default function ResultsClient() {
           setInviteOwner(storedOwner)
         }
 
-        if (!cachedReport) {
+        if (!normalizedCachedReport) {
           queueMicrotask(() => {
             fetchReport(result.pct, profileData, {
               sessionId: sessionData.sessionId,

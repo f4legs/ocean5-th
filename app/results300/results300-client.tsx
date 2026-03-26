@@ -8,6 +8,7 @@ import { type FullScoreResult } from '@/lib/scoring120'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
 import { startStreamReport } from '@/lib/stream-report'
 import { exportAsJSON, exportAsPDF } from '@/lib/export-result'
+import { normalizeMarkdown } from '@/lib/markdown'
 import DomainScores from '@/components/results/domain-scores'
 import FacetScores from '@/components/results/facet-scores'
 import ReportPanel from '@/components/results/report-panel'
@@ -58,6 +59,7 @@ export default function Results300Client() {
       const urlId = searchParams.get('id')
       let resolvedScores: FullScoreResult | null = null
       let resolvedProfileId: string | null = urlId
+      let hasStoredReport = false
 
       if (urlId) {
         const { data: prof } = await supabase
@@ -71,8 +73,12 @@ export default function Results300Client() {
           setLabel(prof.label ?? label)
           if (prof.profile) setProfileData(prof.profile as Record<string, string | null>)
           if (prof.ai_report) {
-            setReport(prof.ai_report)
-            setLoading(false)
+            const normalizedReport = normalizeMarkdown(prof.ai_report)
+            if (normalizedReport) {
+              setReport(normalizedReport)
+              setLoading(false)
+              hasStoredReport = true
+            }
           }
         }
       }
@@ -99,7 +105,7 @@ export default function Results300Client() {
       const storedOwner = localStorage.getItem(STORAGE_KEYS.FRIEND_INVITE_OWNER)
       if (storedCode) { setInviteCode(storedCode); setInviteOwner(storedOwner) }
 
-      if (!report) {
+      if (!hasStoredReport) {
         triggerStreamReport(resolvedScores, token, resolvedProfileId)
       }
     }

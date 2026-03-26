@@ -7,7 +7,13 @@ export const dynamic = 'force-dynamic'
 // POST: anonymous friend shares their test results to the invite owner's library
 // Called automatically when friend's results page detects a FRIEND_INVITE_CODE
 export async function POST(req: NextRequest) {
-  const body = await req.json()
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+
   const parsed = sharePayloadSchema.safeParse(body)
 
   if (!parsed.success) {

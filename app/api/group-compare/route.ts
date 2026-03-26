@@ -154,6 +154,7 @@ export async function POST(req: NextRequest) {
   const prompt = `You are an expert psychologist specializing in Big Five team dynamics. DO NOT mention who you are.
 
 Write the entire report in Thai (ภาษาไทย). Use English only for psychological terminology in parentheses.
+Output valid GitHub-flavored Markdown only. Do not wrap the entire response in triple backticks.
 
 วิเคราะห์กลุ่มจากข้อมูล OCEAN ทั้งหมด ${orderedProfiles.length} คน
 

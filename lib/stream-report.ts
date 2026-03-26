@@ -2,6 +2,9 @@
 // Handles fetch, streaming read, markdown normalization, and fake-progress timer.
 
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
+import { normalizeMarkdown } from '@/lib/markdown'
+
+export { normalizeMarkdown } from '@/lib/markdown'
 
 export interface StreamReportOptions {
   url: string
@@ -14,15 +17,6 @@ export interface StreamReportOptions {
   setFakeProgress: Dispatch<SetStateAction<number>>
   setLoadingSeconds: Dispatch<SetStateAction<number>>
   onSuccess?: (normalizedReport: string) => void
-}
-
-// Normalizes streamed markdown: removes code-fence wrappers, fixes heading spacing
-export function normalizeMarkdown(text: string): string {
-  return text
-    .trim()
-    .replace(/^```[a-z]*\n/, '').replace(/\n```$/, '').trim()
-    .replace(/^(#{1,6})([^\s#\n])/gm, '$1 $2')
-    .replace(/([^\n])\n(#{1,6} )/g, '$1\n\n$2')
 }
 
 // Starts a streaming report fetch. Uses requestId for cancellation safety.
@@ -100,9 +94,9 @@ export function startStreamReport(opts: StreamReportOptions): () => void {
       if (requestId !== activeRequestId.current) return
       setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ')
     } finally {
+      window.clearInterval(interval)
       if (requestId === activeRequestId.current) {
         setLoading(false)
-        window.clearInterval(interval)
       }
     }
   }

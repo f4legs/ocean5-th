@@ -1,5 +1,6 @@
 import path from 'node:path'
 import PDFDocument from 'pdfkit'
+import { buildPdfImportMetadata } from '@/lib/pdf-import'
 
 type Factor = 'O' | 'C' | 'E' | 'A' | 'N'
 
@@ -338,6 +339,21 @@ export async function createReportPdf(data: ReportPdfData, report: string) {
   const fontPaths = getFontPaths()
   const topFactors = [...FACTOR_ORDER].sort((a, b) => data.scores.pct[b] - data.scores.pct[a]).slice(0, 3)
   const chunks: Buffer[] = []
+  const pdfImportMetadata = buildPdfImportMetadata({
+    testId: data.testId,
+    scores: {
+      raw: data.scores.raw,
+      pct: data.scores.pct,
+    },
+    profile: data.profile,
+    answers: data.answers,
+    session: { sessionId: data.sessionId },
+    metadata: {
+      exportedAt: data.completedAt,
+      totalItems: data.metadata.totalItems,
+      durationSeconds: data.metadata.durationSeconds,
+    },
+  })
 
   const doc = new PDFDocument({
     size: 'A4',
@@ -349,6 +365,7 @@ export async function createReportPdf(data: ReportPdfData, report: string) {
       Author: 'FARS-AI Cognitive Science Team',
       Subject: 'OCEAN personality report',
       Keywords: 'OCEAN, Big Five, personality',
+      ...pdfImportMetadata,
     },
   })
 

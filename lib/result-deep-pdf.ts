@@ -1,5 +1,6 @@
 import path from 'node:path'
 import PDFDocument from 'pdfkit'
+import { buildPdfImportMetadata } from '@/lib/pdf-import'
 
 type Factor = 'O' | 'C' | 'E' | 'A' | 'N'
 
@@ -130,6 +131,22 @@ function drawFooter(doc: PDFKit.PDFDocument, data: ResultDeepPdfData) {
 export async function createResultDeepPdf(data: ResultDeepPdfData, report: string): Promise<Buffer> {
   const fontPaths = getFontPaths()
   const chunks: Buffer[] = []
+  const totalItems = data.testType === '120' ? 120 : 300
+  const pdfImportMetadata = buildPdfImportMetadata({
+    testId: data.testId,
+    scores: {
+      raw: data.scores.raw,
+      pct: data.scores.pct,
+      facets: data.scores.facets,
+    },
+    profile: data.profile ?? null,
+    answers: null,
+    metadata: {
+      exportedAt: data.completedAt,
+      totalItems,
+      durationSeconds: null,
+    },
+  })
 
   const doc = new PDFDocument({
     size: 'A4',
@@ -141,6 +158,7 @@ export async function createResultDeepPdf(data: ResultDeepPdfData, report: strin
       Author: 'OCEAN Platform',
       Subject: `OCEAN ${data.testType}-item personality report`,
       Keywords: 'OCEAN, Big Five, personality',
+      ...pdfImportMetadata,
     },
   })
 

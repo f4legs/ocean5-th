@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
   const prompt = `You are an expert clinical psychologist specializing in Big Five / Five-Factor Model personality assessment with deep knowledge of NEO-PI-R facet-level interpretation, cross-dimensional interaction patterns, and vocational psychology research but DO NOT mention who you are.
 
 Write the entire report in Thai (ภาษาไทย). Use English only for psychological terminology in parentheses.
+Output valid GitHub-flavored Markdown only. Do not wrap the entire response in triple backticks.
 
 ผลการทดสอบบุคลิกภาพ OCEAN จากแบบทดสอบ IPIP-NEO 50 ข้อ (คะแนนเป็น percentile — สูง = มีลักษณะมาก, ต่ำ = มีลักษณะน้อย):
 - การเปิดรับประสบการณ์ (Openness / O): ${scores.O}%

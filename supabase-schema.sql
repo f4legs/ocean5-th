@@ -113,6 +113,8 @@ create policy "own_drafts" on quiz_drafts
 
 create index if not exists idx_ocean_profiles_owner on ocean_profiles(owner_id);
 create index if not exists idx_comparisons_owner on comparisons(owner_id);
+create unique index if not exists idx_comparisons_unique_pair_method
+  on comparisons(owner_id, profile_a_id, profile_b_id, method);
 create index if not exists idx_payments_user on payments(user_id);
 create index if not exists idx_quiz_drafts_user on quiz_drafts(user_id);
 create index if not exists idx_friend_invites_code on friend_invites(code);

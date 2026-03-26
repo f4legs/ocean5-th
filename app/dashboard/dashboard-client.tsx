@@ -8,6 +8,7 @@ import { DIMENSION_INFO } from '@/lib/scoring'
 import { FACET_NAMES } from '@/lib/scoring120'
 import { FACTOR_ORDER, type Factor } from '@/lib/ocean-constants'
 import { computeGroupDynamics } from '@/lib/group-dynamics'
+import { normalizeMarkdown } from '@/lib/markdown'
 import {
   IconClose, IconHome, IconBarChart, IconUsers, IconUpload, IconMail,
   IconFileEdit, IconBot, IconBug, IconLogOut, IconPencil, IconTrash,
@@ -52,6 +53,7 @@ const TIER_COLORS: Record<TestType, string> = {
   '300': 'bg-purple-50 text-purple-700',
 }
 const MIN_GROUP_MEMBERS = 3
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024
 
 export default function DashboardClient() {
   const [profiles, setProfiles] = useState<OceanProfile[]>([])
@@ -67,6 +69,7 @@ export default function DashboardClient() {
   // Comparison state
   const [comparing, setComparing] = useState(false)
   const [aiReport, setAiReport] = useState('')
+  const [compareError, setCompareError] = useState<string | null>(null)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -106,7 +109,11 @@ export default function DashboardClient() {
         .eq('owner_id', session.user.id)
         .order('created_at', { ascending: false })
 
-      setProfiles((data ?? []) as OceanProfile[])
+      const normalizedProfiles = ((data ?? []) as OceanProfile[]).map(profile => ({
+        ...profile,
+        ai_report: profile.ai_report ? normalizeMarkdown(profile.ai_report) : undefined,
+      }))
+      setProfiles(normalizedProfiles)
       setLoading(false)
     }
     void init()
@@ -117,22 +124,33 @@ export default function DashboardClient() {
 
   useEffect(() => {
     async function loadComparison() {
-      if (profileA && profileB && userId && !comparing) {
+      if (profileA && profileB && userId) {
         const supabase = createClient()
         const { data } = await supabase
           .from('comparisons')
           .select('ai_report')
-          .eq('user_id', userId)
-          .eq('target_profile_id', profileB.id)
+          .eq('owner_id', userId)
+          .eq('profile_a_id', profileA.id)
+          .eq('profile_b_id', profileB.id)
+          .eq('method', compareMethod)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle()
         if (data?.ai_report) {
-          setAiReport(data.ai_report)
+          const normalizedReport = normalizeMarkdown(data.ai_report)
+          if (normalizedReport) {
+            setAiReport(normalizedReport)
+          } else {
+            setAiReport('')
+          }
+          setCompareError(null)
+        } else {
+          setAiReport('')
         }
       }
     }
     void loadComparison()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedA, selectedB, userId])
+  }, [profileA, profileB, userId, compareMethod])
 
   function handleViewProfile(id: string) {
     setViewingProfileId(id)
@@ -140,9 +158,10 @@ export default function DashboardClient() {
   }
 
   async function handleCompare() {
-    if (!profileA || !profileB) return
+    if (!profileA || !profileB || !accessToken) return
     setComparing(true)
     setAiReport('')
+    setCompareError(null)
 
     try {
       const res = await fetch('/api/compare', {
@@ -158,6 +177,11 @@ export default function DashboardClient() {
         }),
       })
 
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? 'ไม่สามารถสร้างรายงานเปรียบเทียบได้ในขณะนี้')
+      }
+
       if (!res.body) throw new Error('No stream')
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
@@ -170,6 +194,14 @@ export default function DashboardClient() {
         full += chunk
         setAiReport(full)
       }
+
+      const normalizedReport = normalizeMarkdown(full)
+      if (!normalizedReport) {
+        throw new Error('ไม่สามารถสร้างรายงานเปรียบเทียบได้ในขณะนี้')
+      }
+      setAiReport(normalizedReport)
+    } catch (err) {
+      setCompareError(err instanceof Error ? err.message : 'ไม่สามารถสร้างรายงานเปรียบเทียบได้ในขณะนี้')
     } finally {
       setComparing(false)
     }
@@ -237,22 +269,45 @@ export default function DashboardClient() {
     setUploadError(null)
 
     try {
-      const text = await file.text()
-      const json = JSON.parse(text)
-
-      // Validate basic structure
-      if (!json.scores?.pct || typeof json.testId !== 'string') {
-        throw new Error('ไฟล์ JSON ไม่ถูกต้อง — ต้องเป็นผลการทดสอบ OCEAN ที่ส่งออกจากระบบนี้')
+      if (!accessToken) {
+        throw new Error('กรุณาเข้าสู่ระบบใหม่ แล้วลองอีกครั้ง')
       }
 
-      const res = await fetch('/api/profiles/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ exportData: json }),
-      })
+      if (file.size > MAX_UPLOAD_BYTES) {
+        throw new Error('ไฟล์ใหญ่เกินกำหนด (สูงสุด 2 MB)')
+      }
+
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+      let res: Response
+
+      if (isPdf) {
+        const formData = new FormData()
+        formData.append('file', file)
+        res = await fetch('/api/profiles/upload', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formData,
+        })
+      } else {
+        const text = await file.text()
+        const json = JSON.parse(text)
+
+        // Validate basic structure
+        if (!json.scores?.pct || typeof json.testId !== 'string') {
+          throw new Error('ไฟล์ JSON ไม่ถูกต้อง — ต้องเป็นผลการทดสอบ OCEAN ที่ส่งออกจากระบบนี้')
+        }
+
+        res = await fetch('/api/profiles/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ exportData: json }),
+        })
+      }
 
       if (!res.ok) {
         const d = await res.json()
@@ -260,7 +315,11 @@ export default function DashboardClient() {
       }
 
       const { profile } = await res.json()
-      setProfiles(prev => [profile as OceanProfile, ...prev])
+      const normalizedProfile = profile as OceanProfile
+      setProfiles(prev => [{
+        ...normalizedProfile,
+        ai_report: normalizedProfile.ai_report ? normalizeMarkdown(normalizedProfile.ai_report) : undefined,
+      }, ...prev])
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'ไม่สามารถอ่านไฟล์ได้')
     }
@@ -343,6 +402,12 @@ export default function DashboardClient() {
         full += chunk
         setGroupReport(full)
       }
+
+      const normalizedReport = normalizeMarkdown(full)
+      if (!normalizedReport) {
+        throw new Error('ไม่สามารถสร้างรายงานกลุ่มได้ในขณะนี้')
+      }
+      setGroupReport(normalizedReport)
     } catch (err) {
       setGroupReportError(err instanceof Error ? err.message : 'ไม่สามารถสร้างรายงานกลุ่มได้ในขณะนี้')
     } finally {
@@ -452,8 +517,8 @@ export default function DashboardClient() {
 
                 <label className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer transition-colors text-sm ${navIdle}`}>
                   <IconUpload />
-                  <span>อัปโหลด JSON (PDF เร็วๆ นี้)</span>
-                  <input ref={fileInputRef} type="file" accept=".json" className="sr-only" onChange={handleUpload} />
+                  <span>อัปโหลด JSON/PDF (สูงสุด 2 MB)</span>
+                  <input ref={fileInputRef} type="file" accept=".json,.pdf,application/json,application/pdf" className="sr-only" onChange={handleUpload} />
                 </label>
 
                 <button
@@ -616,9 +681,9 @@ export default function DashboardClient() {
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-blue-500" style={{ background: 'rgba(59,130,246,0.08)' }}>
                       <IconCardSelf />
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-800">Self-Understanding</h3>
+                    <h3 className="text-sm font-semibold text-slate-800">การเข้าใจตนเอง</h3>
                     <p className="text-[13px] leading-relaxed text-slate-500">
-                      OCEAN helps you understand your natural tendencies in five key areas: Openness, Conscientiousness, Extraversion, Agreeableness, and Neuroticism.
+                      OCEAN ช่วยให้คุณเข้าใจแนวโน้มตามธรรมชาติของตัวเองใน 5 มิติสำคัญ ได้แก่ การเปิดรับประสบการณ์ (Openness), ความมีวินัยรับผิดชอบ (Conscientiousness), การแสดงตัว (Extraversion), ความเป็นมิตรเห็นอกเห็นใจ (Agreeableness), และความไม่มั่นคงทางอารมณ์ (Neuroticism)
                     </p>
                   </section>
 
@@ -626,9 +691,9 @@ export default function DashboardClient() {
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-violet-500" style={{ background: 'rgba(139,92,246,0.08)' }}>
                       <IconCardTeam />
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-800">Team Dynamics</h3>
+                    <h3 className="text-sm font-semibold text-slate-800">พลวัตของทีม</h3>
                     <p className="text-[13px] leading-relaxed text-slate-500">
-                      Compare your profile with others to understand potential synergies and friction points in a professional or personal setting.
+                      เปรียบเทียบโปรไฟล์ของคุณกับผู้อื่นเพื่อทำความเข้าใจศักยภาพในการทำงานร่วมกันและจุดที่อาจเกิดความขัดแย้ง ทั้งในบริบทการทำงานหรือชีวิตส่วนตัว
                     </p>
                   </section>
 
@@ -636,9 +701,9 @@ export default function DashboardClient() {
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-500" style={{ background: 'rgba(16,185,129,0.08)' }}>
                       <IconCardTrend />
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-800">Personal Growth</h3>
+                    <h3 className="text-sm font-semibold text-slate-800">การเติบโตส่วนบุคคล</h3>
                     <p className="text-[13px] leading-relaxed text-slate-500">
-                      Use the 120 and 300-item tests for research-grade accuracy and deep AI-driven reports that suggest areas for development.
+                      ใช้แบบทดสอบ 120 และ 300 ข้อเพื่อความแม่นยำระดับงานวิจัย พร้อมรายงานเชิงลึกที่ขับเคลื่อนด้วย AI ซึ่งแนะนำจุดที่ควรพัฒนา
                     </p>
                   </section>
 
@@ -646,9 +711,9 @@ export default function DashboardClient() {
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500" style={{ background: 'rgba(245,158,11,0.08)' }}>
                       <IconCardShield />
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-800">Why Use OCEAN?</h3>
+                    <h3 className="text-sm font-semibold text-slate-800">ทำไมต้องใช้ OCEAN?</h3>
                     <p className="text-[13px] leading-relaxed text-slate-500">
-                      It is the most scientifically validated framework for personality psychology, providing a common language for human behavior.
+                      นี่คือกรอบแนวคิดด้านจิตวิทยาบุคลิกภาพที่ได้รับการยืนยันทางวิทยาศาสตร์มากที่สุด โดยให้ภาษากลางสำหรับอธิบายพฤติกรรมมนุษย์
                     </p>
                   </section>
                 </div>
@@ -658,9 +723,9 @@ export default function DashboardClient() {
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-slate-800 mb-1">Getting Started</h4>
+                    <h4 className="text-xs font-semibold text-slate-800 mb-1">เริ่มต้นใช้งาน</h4>
                     <p className="text-[13px] text-slate-500 leading-relaxed">
-                      Select <strong className="text-slate-700 font-semibold">Comparing OCEAN</strong> from the sidebar and pick two profiles to start. No profiles yet? Use <strong className="text-slate-700 font-semibold">Send Invite</strong> to bring a friend in.
+                      เลือกเมนู <strong className="text-slate-700 font-semibold">Comparing OCEAN</strong> จากแถบด้านข้าง แล้วเลือก 2 โปรไฟล์เพื่อเริ่มต้น ยังไม่มีโปรไฟล์ใช่ไหม? ใช้ <strong className="text-slate-700 font-semibold">Send Invite</strong> เพื่อชวนเพื่อนเข้ามาได้เลย
                     </p>
                   </div>
                 </div>
@@ -678,7 +743,7 @@ export default function DashboardClient() {
                     </div>
                     <select
                       value={compareMethod}
-                      onChange={e => { setCompareMethod(e.target.value); setAiReport('') }}
+                      onChange={e => { setCompareMethod(e.target.value); setAiReport(''); setCompareError(null) }}
                       className="rounded-lg border border-[var(--line-strong)] bg-white px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] shrink-0"
                     >
                       {COMPARE_METHODS.map(m => (
@@ -695,7 +760,7 @@ export default function DashboardClient() {
                         profiles={profiles}
                         otherSelectedId={selectedB}
                         color="blue"
-                        onSelect={(id: string) => { setSelectedA(id); setAiReport('') }}
+                        onSelect={(id: string) => { setSelectedA(id); setAiReport(''); setCompareError(null) }}
                         onClear={() => setSelectedA(null)}
                       />
                       <div className="flex items-center justify-center">
@@ -707,7 +772,7 @@ export default function DashboardClient() {
                         profiles={profiles}
                         otherSelectedId={selectedA}
                         color="purple"
-                        onSelect={(id: string) => { setSelectedB(id); setAiReport('') }}
+                        onSelect={(id: string) => { setSelectedB(id); setAiReport(''); setCompareError(null) }}
                         onClear={() => setSelectedB(null)}
                       />
                     </div>
@@ -818,13 +883,13 @@ export default function DashboardClient() {
                 {profileA && !profileB && profileA.ai_report && (
                   <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
                     <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)] mb-4">Deep AI Report</h2>
-                    <div className="prose prose-sm max-w-none text-[var(--text-main)]">
+                    <div className="report-markdown">
                       <ReactMarkdown>{profileA.ai_report}</ReactMarkdown>
                     </div>
                   </div>
                 )}
 
-                {profileA && profileB && (comparing || aiReport) && (
+                {profileA && profileB && (comparing || aiReport || compareError) && (
                   <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">AI Comparison Report</h2>
@@ -840,9 +905,10 @@ export default function DashboardClient() {
                       )}
                     </div>
                     {exportError && <p className="text-xs text-red-500 mb-3">{exportError}</p>}
+                    {compareError && <p className="text-xs text-red-500 mb-3">{compareError}</p>}
                     {comparing && !aiReport && <p className="body-soft text-sm animate-pulse">Analyzing…</p>}
                     {aiReport && (
-                      <div className="prose prose-sm max-w-none text-[var(--text-main)]">
+                      <div className="report-markdown">
                         <ReactMarkdown>{aiReport}</ReactMarkdown>
                       </div>
                     )}
@@ -1178,7 +1244,7 @@ export default function DashboardClient() {
                               <p className="text-[11px] text-slate-400 mt-0.5">Generative AI Insight based on your unique profile</p>
                             </div>
                           </div>
-                          <div className="prose prose-sm max-w-none text-slate-600 prose-headings:text-slate-900 prose-p:leading-relaxed">
+                          <div className="report-markdown">
                             <ReactMarkdown>{p.ai_report}</ReactMarkdown>
                           </div>
                         </div>
