@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { createClient } from '@/utils/supabase/client'
 import { DIMENSION_INFO } from '@/lib/scoring'
 import { FACET_NAMES } from '@/lib/scoring120'
 import { FACTOR_ORDER, type Factor } from '@/lib/ocean-constants'
+import { computeGroupDynamics } from '@/lib/group-dynamics'
 import {
   IconClose, IconHome, IconBarChart, IconUsers, IconUpload, IconMail,
   IconFileEdit, IconBot, IconBug, IconLogOut, IconPencil, IconTrash,
@@ -37,6 +38,12 @@ const COMPARE_METHODS = [
   { value: 'teamwork', label: 'การทำงาน (Teamwork)' },
   { value: 'strengths', label: 'จุดแข็ง-จุดอ่อน (Strengths)' },
 ]
+const GROUP_REPORT_METHODS = [
+  { value: 'teamwork', label: 'Teamwork' },
+  { value: 'leadership', label: 'Leadership' },
+  { value: 'innovation', label: 'Innovation' },
+  { value: 'risk', label: 'Risk & Blind Spots' },
+]
 
 const SOURCE_LABELS: Record<Source, string> = { test: 'ของฉัน', upload: 'อัปโหลด', shared: 'เพื่อน' }
 const TIER_COLORS: Record<TestType, string> = {
@@ -44,6 +51,7 @@ const TIER_COLORS: Record<TestType, string> = {
   '120': 'bg-blue-50 text-blue-700',
   '300': 'bg-purple-50 text-purple-700',
 }
+const MIN_GROUP_MEMBERS = 3
 
 export default function DashboardClient() {
   const [profiles, setProfiles] = useState<OceanProfile[]>([])
@@ -66,6 +74,11 @@ export default function DashboardClient() {
 
   const [activeView, setActiveView] = useState<'default' | 'compare' | 'group-compare' | 'profile'>('default')
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null)
+  const [groupSelectedIds, setGroupSelectedIds] = useState<string[]>([])
+  const [groupReportMethod, setGroupReportMethod] = useState('teamwork')
+  const [generatingGroupReport, setGeneratingGroupReport] = useState(false)
+  const [groupReport, setGroupReport] = useState('')
+  const [groupReportError, setGroupReportError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -215,6 +228,7 @@ export default function DashboardClient() {
     setProfiles(prev => prev.filter(p => p.id !== id))
     if (selectedA === id) setSelectedA(null)
     if (selectedB === id) setSelectedB(null)
+    setGroupSelectedIds(prev => prev.filter(existingId => existingId !== id))
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -276,11 +290,120 @@ export default function DashboardClient() {
     window.location.href = '/'
   }
 
+  function toggleGroupMember(id: string) {
+    setGroupSelectedIds(prev => (
+      prev.includes(id)
+        ? prev.filter(existingId => existingId !== id)
+        : [...prev, id]
+    ))
+  }
+
+  function removeGroupMember(id: string) {
+    setGroupSelectedIds(prev => prev.filter(existingId => existingId !== id))
+  }
+
+  function clearGroupSelection() {
+    setGroupSelectedIds([])
+  }
+
+  async function handleGenerateGroupReport() {
+    if (!accessToken || !canAnalyzeGroup) return
+
+    setGeneratingGroupReport(true)
+    setGroupReport('')
+    setGroupReportError(null)
+
+    try {
+      const res = await fetch('/api/group-compare', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          profileIds: groupMembers.map(member => member.id),
+          method: groupReportMethod,
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? 'ไม่สามารถสร้างรายงานกลุ่มได้ในขณะนี้')
+      }
+      if (!res.body) throw new Error('No stream')
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let full = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        full += chunk
+        setGroupReport(full)
+      }
+    } catch (err) {
+      setGroupReportError(err instanceof Error ? err.message : 'ไม่สามารถสร้างรายงานกลุ่มได้ในขณะนี้')
+    } finally {
+      setGeneratingGroupReport(false)
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   const myTests = profiles.filter(p => p.source === 'test')
   const uploaded = profiles.filter(p => p.source === 'upload')
   const shared = profiles.filter(p => p.source === 'shared')
+  const groupMembers = useMemo(
+    () => groupSelectedIds
+      .map(id => profiles.find(profile => profile.id === id))
+      .filter((profile): profile is OceanProfile => Boolean(profile)),
+    [groupSelectedIds, profiles]
+  )
+  const groupDynamics = useMemo(
+    () => computeGroupDynamics(groupMembers.map(member => ({
+      id: member.id,
+      label: member.label,
+      pct: member.scores.pct,
+    }))),
+    [groupMembers]
+  )
+  const groupMetrics = groupDynamics ? [
+    {
+      key: 'execution',
+      title: 'Execution Strength',
+      score: groupDynamics.executionStrength.score,
+      label: groupDynamics.executionStrength.label,
+      color: 'hsl(210,55%,52%)',
+    },
+    {
+      key: 'innovation',
+      title: 'Innovation Pivot',
+      score: groupDynamics.innovationPivot.score,
+      label: groupDynamics.innovationPivot.label,
+      color: 'hsl(268,45%,55%)',
+    },
+    {
+      key: 'social',
+      title: 'Social Cohesion',
+      score: groupDynamics.socialCohesion.score,
+      label: groupDynamics.socialCohesion.label,
+      color: 'hsl(158,50%,42%)',
+    },
+  ] : []
+  const canAnalyzeGroup = groupMembers.length >= MIN_GROUP_MEMBERS && Boolean(groupDynamics)
+  const groupSelectionSignature = groupMembers.map(member => member.id).join('|')
+
+  useEffect(() => {
+    setGroupReport('')
+    setGroupReportError(null)
+  }, [groupSelectionSignature])
+
+  useEffect(() => {
+    setGroupReport('')
+    setGroupReportError(null)
+  }, [groupReportMethod])
 
   const navActive = 'bg-[var(--accent-soft)] text-[var(--accent-strong)] font-semibold'
   const navIdle = 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
@@ -729,82 +852,210 @@ export default function DashboardClient() {
             )}
 
             {activeView === 'group-compare' && (
-              <div className="glass-panel relative overflow-hidden rounded-[2rem] border border-[var(--line)] bg-transparent px-8 py-10 text-center shadow-none">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[var(--accent)]" style={{ background: 'rgba(95,116,130,0.09)' }}>
-                  <IconUsersLg />
+              <div className="space-y-5">
+                <div className="glass-panel relative overflow-hidden rounded-[2rem] border border-[var(--line)] bg-transparent px-8 py-10 text-center shadow-none">
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[var(--accent)]" style={{ background: 'rgba(95,116,130,0.09)' }}>
+                    <IconUsersLg />
+                  </div>
+                  <h2 className="text-2xl font-semibold text-slate-800">Group Dynamics Analysis</h2>
+                  <p className="mt-4 text-slate-500 max-w-md mx-auto leading-relaxed text-sm">
+                    Analyze how multiple people interact within a group. Identify collective strengths, potential blind spots, and cultural alignment.
+                  </p>
                 </div>
-                <h2 className="text-2xl font-semibold text-slate-800">Group Dynamics Analysis</h2>
-                <p className="mt-4 text-slate-500 max-w-md mx-auto leading-relaxed text-sm">
-                  Analyze how multiple people interact within a group. Identify collective strengths, potential blind spots, and cultural alignment.
-                </p>
 
-                {/* Mockup visualization */}
-                <div className="group relative mx-auto mt-10 max-w-lg overflow-hidden rounded-[2rem] bg-white p-6">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 opacity-50" />
-                  <div className="relative z-10 text-left">
-                    <div className="flex justify-between items-end mb-8">
-                      <div className="text-left">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preview: Engineering Team</p>
-                        <h4 className="text-lg font-bold text-slate-800 tracking-tight">Team Balance Index</h4>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-2xl font-black text-purple-600">84%</span>
-                        <p className="text-[10px] font-medium text-slate-500 uppercase">Alignment</p>
-                      </div>
+                <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-6 shadow-none sm:px-8 sm:py-7">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800">Select Group Members</h3>
+                      <p className="mt-1 text-xs text-slate-500">Choose profiles from your library to compute team dynamics.</p>
                     </div>
+                    {groupSelectedIds.length > 0 && (
+                      <button
+                        onClick={clearGroupSelection}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-700 hover:bg-white"
+                      >
+                        Clear Selection
+                      </button>
+                    )}
+                  </div>
 
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                          <span>Execution Strength</span>
-                          <span>High</span>
-                        </div>
-                        <div className="rounded-full overflow-hidden" style={{ height: '4px', background: 'rgba(69,98,118,0.12)' }}>
-                          <div className="h-full w-[90%] rounded-full" style={{ background: 'hsl(210,55%,52%)', boxShadow: '0 0 6px hsl(210,55%,52%)' }} />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                          <span>Innovation Pivot</span>
-                          <span>Moderate</span>
-                        </div>
-                        <div className="rounded-full overflow-hidden" style={{ height: '4px', background: 'rgba(69,98,118,0.12)' }}>
-                          <div className="h-full w-[65%] rounded-full" style={{ background: 'hsl(268,45%,55%)', boxShadow: '0 0 6px hsl(268,45%,55%)' }} />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">
-                          <span>Social Cohesion</span>
-                          <span>Very High</span>
-                        </div>
-                        <div className="rounded-full overflow-hidden" style={{ height: '4px', background: 'rgba(69,98,118,0.12)' }}>
-                          <div className="h-full w-[95%] rounded-full" style={{ background: 'hsl(158,50%,42%)', boxShadow: '0 0 6px hsl(158,50%,42%)' }} />
-                        </div>
-                      </div>
+                  {profiles.length === 0 ? (
+                    <div className="mt-4 rounded-xl bg-slate-50 px-4 py-4 text-xs text-slate-500">
+                      No profiles available yet. Complete or upload a test result first.
                     </div>
+                  ) : (
+                    <div className="mt-4 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                      {profiles.map(profile => {
+                        const selected = groupSelectedIds.includes(profile.id)
+                        const { primary, secondary } = getProfileDisplayText(profile)
+                        return (
+                          <button
+                            key={profile.id}
+                            onClick={() => toggleGroupMember(profile.id)}
+                            className={`rounded-xl border px-3 py-3 text-left transition-colors ${
+                              selected
+                                ? 'border-[var(--accent)] bg-white'
+                                : 'border-transparent bg-white/60 hover:border-slate-200 hover:bg-white'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="truncate text-xs font-semibold text-[var(--text-main)]">{primary}</p>
+                              <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${TIER_COLORS[profile.test_type]}`}>
+                                {profile.test_type}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[10px] text-slate-400">{SOURCE_LABELS[profile.source]} • {secondary}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
 
-                    <div className="mt-8 pt-6 border-t border-slate-200/60 flex -space-x-2">
-                       {[1,2,3,4,5].map(i => (
-                         <div key={i} className="w-8 h-8 rounded-full bg-white border-2 border-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400">
-                           {String.fromCharCode(64 + i)}
-                         </div>
-                       ))}
-                       <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold">
-                         +3
-                       </div>
+                <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-6 shadow-none sm:px-8 sm:py-7">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        {groupMembers.length > 0 ? `Preview: ${groupMembers.length} Members` : 'Preview'}
+                      </p>
+                      <h4 className="text-2xl font-bold text-slate-800 tracking-tight">Team Balance Index</h4>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-3xl font-black text-purple-600 tabular-nums">
+                        {canAnalyzeGroup && groupDynamics ? `${groupDynamics.teamBalanceIndex.score}%` : '--'}
+                      </span>
+                      <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Alignment</p>
                     </div>
                   </div>
 
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xl">
-                      Coming Soon in Phase 3
-                    </div>
-                  </div>
-                </div>
+                  {groupMembers.length > 0 && (
+                    <div className="mt-6 border-t border-slate-200/70 pt-5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span className="font-semibold uppercase tracking-wide">Selected Members</span>
+                        <span>{groupMembers.length} คน</span>
+                      </div>
 
-                <p className="mt-8 text-xs text-slate-400 font-medium italic">
-                  * ฟีเจอร์วิเคราะห์กลุ่มจะเปิดให้ใช้งานเร็ว ๆ นี้ พร้อมรวบรวมผลลัพธ์จากคนในทีมได้ไม่จำกัด
-                </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <div className="flex items-center -space-x-2">
+                          {groupMembers.slice(0, 6).map(member => (
+                            <div
+                              key={member.id}
+                              className="w-8 h-8 rounded-full bg-white border-2 border-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600"
+                              title={member.label}
+                            >
+                              {getProfileInitials(member.label)}
+                            </div>
+                          ))}
+                          {groupMembers.length > 6 && (
+                            <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold border-2 border-slate-100">
+                              +{groupMembers.length - 6}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {groupMembers.map(member => (
+                            <button
+                              key={member.id}
+                              onClick={() => removeGroupMember(member.id)}
+                              className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-200"
+                              title={`Remove ${member.label}`}
+                            >
+                              <span className="max-w-[120px] truncate">{member.label}</span>
+                              <IconClose />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {profiles.length > 0 && groupMembers.length < MIN_GROUP_MEMBERS && (
+                    <div className="mt-6 rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                      Select at least {MIN_GROUP_MEMBERS} profiles to unlock group analysis. Currently selected: {groupMembers.length}
+                    </div>
+                  )}
+
+                  {canAnalyzeGroup && (
+                    <>
+                      <div className="mt-7 space-y-4">
+                        {groupMetrics.map(metric => (
+                          <div key={metric.key} className="space-y-1">
+                            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                              <span>{metric.title}</span>
+                              <span>{metric.label}</span>
+                            </div>
+                            <div className="rounded-full overflow-hidden" style={{ height: '4px', background: 'rgba(69,98,118,0.12)' }}>
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{
+                                  width: `${metric.score}%`,
+                                  background: metric.color,
+                                  boxShadow: `0 0 6px ${metric.color}`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="mt-7 text-xs text-slate-400 font-medium italic">
+                        * Metrics are computed deterministically from selected OCEAN profiles and update in real-time as your group changes.
+                      </p>
+
+                      <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 px-4 py-4 sm:px-5 sm:py-5">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                          <div>
+                            <h5 className="text-sm font-bold text-slate-800">AI Group Narrative</h5>
+                            <p className="mt-1 text-[11px] text-slate-500">
+                              Generate an actionable team report tailored to your selected members.
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <select
+                              value={groupReportMethod}
+                              onChange={e => setGroupReportMethod(e.target.value)}
+                              disabled={generatingGroupReport}
+                              className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 focus:outline-none"
+                            >
+                              {GROUP_REPORT_METHODS.map(method => (
+                                <option key={method.value} value={method.value}>{method.label}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={handleGenerateGroupReport}
+                              disabled={generatingGroupReport || !accessToken}
+                              className="primary-button"
+                              style={{ minHeight: '2.25rem', padding: '0.45rem 0.9rem', fontSize: '0.75rem', borderRadius: '0.7rem' }}
+                            >
+                              {generatingGroupReport ? 'Analyzing Group…' : 'Generate Report'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {groupReportError && (
+                          <p className="mt-3 text-xs text-red-500">{groupReportError}</p>
+                        )}
+
+                        {generatingGroupReport && !groupReport && (
+                          <div className="mt-4 rounded-xl bg-slate-50 px-4 py-4 text-center">
+                            <p className="text-xs text-slate-500 mb-2">AI กำลังวิเคราะห์ทีมของคุณ…</p>
+                            <div className="loading-line soft" />
+                          </div>
+                        )}
+
+                        {groupReport && (
+                          <div className="mt-4 rounded-xl border border-slate-100 bg-white px-4 py-4">
+                            <div className="report-markdown text-sm">
+                              <ReactMarkdown>{groupReport}</ReactMarkdown>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1061,6 +1312,18 @@ function getProfileDisplayText(profile: OceanProfile) {
     primary,
     secondary: formattedDate,
   }
+}
+
+function getProfileInitials(label: string) {
+  const words = label
+    .replace(/[·•]/g, ' ')
+    .split(/\s+/)
+    .map(word => word.trim())
+    .filter(Boolean)
+
+  if (words.length === 0) return '?'
+  if (words.length === 1) return words[0].slice(0, 1).toUpperCase()
+  return `${words[0].slice(0, 1)}${words[1].slice(0, 1)}`.toUpperCase()
 }
 
 function ProfileCombobox({
