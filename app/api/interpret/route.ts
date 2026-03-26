@@ -1,26 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI, ThinkingLevel } from '@google/genai'
+import { createFixedWindowRateLimiter, getClientIp } from '@/utils/api/rate-limit'
 
 export const maxDuration = 300 // seconds — requires Vercel Pro or higher
 
-// Simple in-memory rate limiter: max 5 requests per 10 minutes per IP
-// NOTE: On serverless (Vercel), each instance has its own Map — this is best-effort only.
-// For production-grade rate limiting, use Upstash or Vercel's built-in rate limits.
-const rateMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT = 5
-const RATE_WINDOW_MS = 10 * 60 * 1000
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateMap.get(ip)
-  if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS })
-    return false
-  }
-  if (entry.count >= RATE_LIMIT) return true
-  entry.count++
-  return false
-}
+const checkRateLimit = createFixedWindowRateLimiter({
+  limit: 5,
+  windowMs: 10 * 60 * 1000,
+})
 
 // Sanitize profile text: keep Thai, Latin, digits, and basic punctuation; max length
 function sanitize(s: string | null | undefined, maxLen = 100): string | null {
@@ -36,8 +23,8 @@ export async function POST(req: NextRequest) {
 
   // Rate limiting by IP
   // Prefer x-real-ip (set by Vercel, not spoofable) over x-forwarded-for
-  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (isRateLimited(ip)) {
+  const { limited } = checkRateLimit(getClientIp(req))
+  if (limited) {
     return NextResponse.json(
       { error: 'คุณส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่' },
       { status: 429 }

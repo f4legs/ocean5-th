@@ -1,23 +1,16 @@
 import { randomBytes } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/utils/supabase/admin'
 import { profileShareCreatePayloadSchema } from '@/lib/schemas'
+import {
+  getAuthenticatedUserFromToken,
+  getBearerToken,
+} from '@/utils/api/auth'
 
 export const dynamic = 'force-dynamic'
 
 function generateCode(): string {
   return randomBytes(6).toString('hex')
-}
-
-async function resolveUserFromToken(accessToken: string) {
-  const userClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
-  )
-  const { data: { user } } = await userClient.auth.getUser()
-  return user
 }
 
 async function isPaidMember(userId: string): Promise<boolean> {
@@ -33,11 +26,10 @@ async function isPaidMember(userId: string): Promise<boolean> {
 }
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
+  const accessToken = getBearerToken(req)
   if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const user = await resolveUserFromToken(accessToken)
+  const user = await getAuthenticatedUserFromToken(accessToken)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   if (!(await isPaidMember(user.id))) {

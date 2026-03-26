@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin as supabase } from '@/utils/supabase/admin'
-import { createClient } from '@supabase/supabase-js'
 import { randomBytes } from 'crypto'
+import {
+  createAuthenticatedSupabaseClient,
+  getAuthenticatedUser,
+  getBearerToken,
+} from '@/utils/api/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,16 +27,11 @@ async function isPaidMember(userId: string): Promise<boolean> {
 
 // POST: paid user creates a friend invite link
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  const accessToken = authHeader?.replace('Bearer ', '')
+  const accessToken = getBearerToken(req)
   if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const userClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
-  )
-  const { data: { user } } = await userClient.auth.getUser()
+  const userClient = createAuthenticatedSupabaseClient(accessToken)
+  const user = await getAuthenticatedUser(userClient)
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   if (!(await isPaidMember(user.id))) {

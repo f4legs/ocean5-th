@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI, ThinkingLevel } from '@google/genai'
-import { createClient } from '@supabase/supabase-js'
 import { type Factor } from '@/lib/ocean-constants'
 import { computeGroupDynamics } from '@/lib/group-dynamics'
+import {
+  createAuthenticatedSupabaseClient,
+  getAuthenticatedUser,
+  getBearerToken,
+} from '@/utils/api/auth'
+import { createFixedWindowRateLimiter, getClientIp } from '@/utils/api/rate-limit'
 
 export const maxDuration = 300
 
-const rateMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT = 4
-const RATE_WINDOW_MS = 10 * 60 * 1000
+const checkRateLimit = createFixedWindowRateLimiter({
+  limit: 4,
+  windowMs: 10 * 60 * 1000,
+})
 const MAX_GROUP_SIZE = 12
 
 const METHODS: Record<string, string> = {
@@ -16,18 +22,6 @@ const METHODS: Record<string, string> = {
   leadership: 'ภาวะผู้นำ การตัดสินใจ และการกระจายบทบาท (Leadership)',
   innovation: 'นวัตกรรม การคิดใหม่ และการทดลอง (Innovation)',
   risk: 'ความเสี่ยง จุดเปราะบาง และแผนป้องกันความขัดแย้ง (Risk)',
-}
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateMap.get(ip)
-  if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS })
-    return false
-  }
-  if (entry.count >= RATE_LIMIT) return true
-  entry.count += 1
-  return false
 }
 
 function average(values: number[]): number {
@@ -46,24 +40,19 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 })
 
-  const authHeader = req.headers.get('authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
+  const accessToken = getBearerToken(req)
+  if (!accessToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const accessToken = authHeader.slice(7)
 
-  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (isRateLimited(ip)) {
+  const { limited } = checkRateLimit(getClientIp(req))
+  if (limited) {
     return NextResponse.json({ error: 'คุณส่งคำขอบ่อยเกินไป กรุณารอสักครู่' }, { status: 429 })
   }
 
-  const userClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
-  )
-  const { data: { user }, error: authError } = await userClient.auth.getUser()
-  if (authError || !user) {
+  const userClient = createAuthenticatedSupabaseClient(accessToken)
+  const user = await getAuthenticatedUser(userClient)
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

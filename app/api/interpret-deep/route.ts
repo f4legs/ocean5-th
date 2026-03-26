@@ -3,25 +3,14 @@ import { GoogleGenAI, ThinkingLevel } from '@google/genai'
 import { FACET_NAMES } from '@/lib/scoring120'
 import { normalizeMarkdown } from '@/lib/markdown'
 import { supabaseAdmin } from '@/utils/supabase/admin'
+import { createFixedWindowRateLimiter, getClientIp } from '@/utils/api/rate-limit'
 
 export const maxDuration = 300
 
-// Same rate limiting pattern as /api/interpret
-const rateMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT = 5
-const RATE_WINDOW_MS = 10 * 60 * 1000
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateMap.get(ip)
-  if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS })
-    return false
-  }
-  if (entry.count >= RATE_LIMIT) return true
-  entry.count++
-  return false
-}
+const checkRateLimit = createFixedWindowRateLimiter({
+  limit: 5,
+  windowMs: 10 * 60 * 1000,
+})
 
 function sanitize(s: string | null | undefined, maxLen = 100): string | null {
   if (!s) return null
@@ -32,8 +21,8 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 })
 
-  const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (isRateLimited(ip)) {
+  const { limited } = checkRateLimit(getClientIp(req))
+  if (limited) {
     return NextResponse.json({ error: 'คุณส่งคำขอบ่อยเกินไป กรุณารอสักครู่' }, { status: 429 })
   }
 
