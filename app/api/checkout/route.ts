@@ -9,6 +9,18 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+function resolveBaseUrl(req: NextRequest): string {
+  const configured = process.env.NEXT_PUBLIC_BASE_URL?.trim()
+  if (configured) {
+    try {
+      return new URL(configured).origin
+    } catch {
+      // Fall back to request origin when env is invalid
+    }
+  }
+  return req.nextUrl.origin
+}
+
 export async function POST(req: NextRequest) {
   // Verify the user is authenticated via their session token
   const accessToken = getBearerToken(req)
@@ -35,7 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Already purchased' }, { status: 400 })
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!
+  const baseUrl = resolveBaseUrl(req)
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

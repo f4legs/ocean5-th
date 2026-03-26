@@ -9,6 +9,18 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+function resolveBaseUrl(req: NextRequest): string {
+  const configured = process.env.NEXT_PUBLIC_BASE_URL?.trim()
+  if (configured) {
+    try {
+      return new URL(configured).origin
+    } catch {
+      // Fall back to request origin when env is invalid
+    }
+  }
+  return req.nextUrl.origin
+}
+
 function generateCode(): string {
   return randomBytes(4).toString('hex') // 8-char hex code
 }
@@ -71,6 +83,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!
+  const baseUrl = resolveBaseUrl(req)
   return NextResponse.json({ code, url: `${baseUrl}/invite/${code}` })
 }
