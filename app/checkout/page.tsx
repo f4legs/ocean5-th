@@ -15,8 +15,8 @@ const OCEAN_DIM = [
 
 const FEATURE_STORIES = [
   {
-    title: 'ไม่หยุดแค่ Big Five',
-    desc: 'เห็นละเอียดถึง 30 facets ที่อธิบายสไตล์การคิด การทำงาน และความสัมพันธ์ได้ชัดกว่าคะแนน 5 ด้าน',
+    title: 'ลงลึกถึงระดับ Facet',
+    desc: 'จากคะแนน 5 ด้าน ไปสู่ 30 องค์ประกอบย่อยที่ช่วยอธิบายรูปแบบการคิด การทำงาน และการสื่อสารได้ละเอียดขึ้น',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M2.5 12.5h11M4 10V6.5M8 10V3.5M12 10V7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -27,8 +27,8 @@ const FEATURE_STORIES = [
     ),
   },
   {
-    title: 'รายงาน AI ที่อ่านแล้วเอาไปใช้ต่อได้',
-    desc: 'สรุปเชิงลึกประมาณ 2,500 คำ พร้อมภาพรวม จุดเด่น blind spots และแนวทางพัฒนาที่โยงกับคะแนนของคุณจริง',
+    title: 'รายงานที่เชื่อมกับคะแนนจริง',
+    desc: 'สรุปเชิงลึกภาษาไทยโดยอิงผลประเมินของคุณ เพื่อช่วยมองภาพรวม จุดเด่น ประเด็นเสี่ยง และแนวทางพัฒนาที่ชัดเจนขึ้น',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <path d="M4 2.5h5l3 3V13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
@@ -37,8 +37,8 @@ const FEATURE_STORIES = [
     ),
   },
   {
-    title: 'เป็น workspace ต่อเนื่อง ไม่ใช่รายงานครั้งเดียว',
-    desc: 'เก็บโปรไฟล์ไว้ใน dashboard เปรียบเทียบคนสองคน สร้าง PDF และแชร์ผลให้ทีมหรือเพื่อนได้',
+    title: 'ใช้งานต่อได้ใน Dashboard',
+    desc: 'จัดเก็บผล เปรียบเทียบโปรไฟล์ ส่งต่อ และดาวน์โหลด PDF ได้ในพื้นที่ทำงานเดียว ไม่จบแค่หน้า result ครั้งแรก',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <circle cx="5" cy="5.5" r="2" stroke="currentColor" strokeWidth="1.4" />
@@ -50,41 +50,48 @@ const FEATURE_STORIES = [
 ]
 
 const INCLUDED_NOW = [
-  'Deep test 120 ข้อ พร้อมผล 30 facets',
-  'Research tier 300 ข้อ รวมอยู่ในราคาเดียวกัน',
-  'รายงาน AI ภาษาไทยเชิงลึกประมาณ 2,500 คำ',
-  'บันทึกโปรไฟล์ไว้ใน dashboard ของคุณ',
-  'AI compare ระหว่างสองโปรไฟล์ พร้อม export PDF',
-  'Invite เพื่อนและแชร์โปรไฟล์แบบลิงก์ส่วนตัว',
+  'แบบประเมิน 120 ข้อ พร้อมผลระดับ 30 facets',
+  'สิทธิ์ทำแบบประเมิน 300 ข้อโดยไม่ซื้อเพิ่ม',
+  'รายงาน AI ภาษาไทยเชิงลึกสำหรับแต่ละโปรไฟล์',
+  'จัดเก็บผลและกลับมาเปิดดูได้ใน Dashboard',
+  'เปรียบเทียบ 2 โปรไฟล์และส่งออก PDF',
+  'แชร์ผลผ่านลิงก์ส่วนตัวเพื่อใช้คุยต่อกับผู้อื่น',
+]
+
+const PROFESSIONAL_USE_CASES = [
+  'ใช้ทบทวนจุดแข็ง จุดเสี่ยง และสไตล์การทำงานของตนเองอย่างเป็นระบบ',
+  'ใช้เป็นฐานสนทนาในการ feedback, coaching หรือการคุยเรื่องบทบาทในทีม',
+  'ใช้เทียบโปรไฟล์ระหว่างบุคคลโดยมีบริบทมากกว่าการดูคะแนนรวมเพียงอย่างเดียว',
+  'ใช้เก็บผลไว้ดูย้อนหลังเมื่อมีการประเมินรอบใหม่',
 ]
 
 const FLOW_STEPS = [
   {
     step: '01',
-    title: 'ชำระครั้งเดียว',
-    desc: 'ปลดล็อกบัญชีของคุณผ่าน Stripe แบบไม่มีค่ารายเดือน',
+    title: 'ชำระและยืนยันสิทธิ์',
+    desc: 'ระบบปลดล็อกสิทธิ์ให้บัญชีของคุณผ่าน Stripe แบบครั้งเดียว ไม่มีค่ารายเดือน',
   },
   {
     step: '02',
-    title: 'เริ่ม 120 หรือ 300 ข้อ',
-    desc: 'เลือกความลึกที่ต้องการได้ทันทีโดยไม่ต้องซื้อเพิ่ม',
+    title: 'เลือกความลึกที่ต้องการ',
+    desc: 'เริ่มจาก 120 ข้อ หรือไปต่อที่ 300 ข้อได้ทันทีภายใต้แพ็กเดียว',
   },
   {
     step: '03',
-    title: 'รับผล เก็บผล และเปรียบเทียบต่อ',
-    desc: 'รายงาน AI, dashboard, compare, PDF และระบบแชร์พร้อมใช้งาน',
+    title: 'นำผลไปใช้ต่อ',
+    desc: 'รับรายงาน เก็บผล เปรียบเทียบ และแชร์ต่อได้จาก Dashboard เดียว',
   },
 ]
 
 const VALUE_METRICS = [
-  { value: '120', label: 'คำถาม deep' },
+  { value: '120', label: 'ข้อใน deep test' },
   { value: '30', label: 'facet scores' },
-  { value: '300', label: 'research tier' },
-  { value: '2,500', label: 'คำรายงาน AI' },
+  { value: '300', label: 'ข้อใน research tier' },
+  { value: '2,500', label: 'คำรายงานโดยประมาณ' },
 ]
 
 function CheckIcon({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
-  const color = tone === 'dark' ? 'rgba(255,255,255,0.88)' : '#355062'
+  const color = tone === 'dark' ? 'rgba(255,255,255,0.88)' : '#5b7382'
 
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ color, flexShrink: 0 }}>
@@ -187,11 +194,20 @@ function CheckoutContent() {
         <div className="relative overflow-hidden rounded-[2.25rem] bg-white shadow-[0_36px_100px_rgba(15,23,42,0.12)] lg:grid lg:grid-cols-[minmax(0,1.18fr)_minmax(360px,0.82fr)]">
           <section
             className="relative px-6 pb-8 pt-8 sm:px-8 sm:pb-10 sm:pt-10 lg:px-12 lg:pb-12 lg:pt-12"
-            style={{ background: 'linear-gradient(155deg, #4d6a7f 0%, #233643 58%, #1f313c 100%)' }}
+            style={{
+              backgroundImage: `
+                linear-gradient(145deg, rgba(18, 32, 41, 0.82) 0%, rgba(23, 43, 54, 0.76) 48%, rgba(17, 31, 40, 0.84) 100%),
+                radial-gradient(circle at 15% 10%, rgba(133, 169, 188, 0.24), transparent 38%),
+                radial-gradient(circle at 85% 80%, rgba(13, 24, 31, 0.35), transparent 48%),
+                url('/checkoutBG.webp')
+              `,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
           >
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-40"
-              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.07), transparent)' }}
+              style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.12), transparent)' }}
               aria-hidden="true"
             />
 
@@ -205,16 +221,16 @@ function CheckoutContent() {
                   style={{ background: '#c7d6df', boxShadow: '0 0 10px rgba(199,214,223,0.8)' }}
                   aria-hidden="true"
                 />
-                Deep analysis pass
+                Professional insight pack
               </span>
 
               <h1
                 className="mt-6 max-w-3xl text-[2.3rem] font-bold leading-[1.04] tracking-[-0.035em] text-white sm:text-[2.9rem] lg:text-[3.35rem]"
                 style={{ fontFamily: 'var(--font-display), Georgia, serif' }}
               >
-                ปลดล็อกบุคลิกภาพ
+                อ่านบุคลิกภาพ
                 <br />
-                ที่ละเอียดกว่า
+                ให้ลึกกว่า
                 <br />
                 คะแนน 5 ด้าน
               </h1>
@@ -223,16 +239,16 @@ function CheckoutContent() {
                 className="mt-5 max-w-2xl text-[14px] leading-7 sm:text-[15px]"
                 style={{ color: 'rgba(255,255,255,0.68)' }}
               >
-                คุณไม่ได้ซื้อแค่รายงานหนึ่งฉบับ แต่กำลังปลดล็อกระบบวิเคราะห์บุคลิกภาพทั้งชุด:
-                แบบทดสอบ 120 ข้อ, research tier 300 ข้อ, รายงาน AI เชิงลึก, dashboard เก็บผล,
-                compare สองโปรไฟล์ และเครื่องมือแชร์ผลต่อยอดกับคนสำคัญ
+                แพ็กนี้ออกแบบสำหรับผู้ที่ต้องการใช้ผลประเมินอย่างจริงจัง ทั้งเพื่อการพัฒนาตนเอง
+                การคุยกับทีม หรือการเปรียบเทียบโปรไฟล์ระหว่างบุคคล โดยรวมแบบประเมินเชิงลึก
+                รายงาน AI และเครื่องมือใช้งานต่อไว้ในที่เดียว
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2.5">
                 {[
-                  'IPIP-NEO มาตรฐานงานวิจัย',
-                  '30 facets ที่ใช้อธิบายตัวตนได้ลึกขึ้น',
-                  '300 ข้อรวมอยู่ในราคาเดียว',
+                  'โครงแบบอ้างอิง IPIP-NEO',
+                  'มองเห็นรายละเอียดระดับ 30 facets',
+                  'เหมาะกับ self-reflection และ team discussion',
                 ].map((pill) => (
                   <span
                     key={pill}
@@ -278,7 +294,12 @@ function CheckoutContent() {
               <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-start">
                 <div
                   className="rounded-[1.75rem] px-5 py-5"
-                  style={{ background: 'rgba(7,12,18,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{
+                    background: 'rgba(9,14,20,0.3)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                  }}
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div>
@@ -293,9 +314,17 @@ function CheckoutContent() {
                     </div>
                     <div
                       className="rounded-2xl px-3 py-2 text-right"
-                      style={{ background: 'rgba(255,255,255,0.06)' }}
+                      style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        backdropFilter: 'blur(14px)',
+                        WebkitBackdropFilter: 'blur(14px)',
+                      }}
                     >
-                      <p className="text-[1.1rem] font-bold tabular-nums text-white">5 → 30</p>
+                      <p className="flex items-baseline justify-end gap-1 whitespace-nowrap text-[1.1rem] font-bold tabular-nums text-white">
+                        <span>5</span>
+                        <span aria-hidden="true">→</span>
+                        <span>30</span>
+                      </p>
                       <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>resolution</p>
                     </div>
                   </div>
@@ -342,14 +371,23 @@ function CheckoutContent() {
 
                 <div
                   className="rounded-[1.75rem] px-5 py-5"
-                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                  }}
                 >
                   <div className="grid grid-cols-2 gap-3">
                     {VALUE_METRICS.map((metric) => (
                       <div
                         key={metric.value}
                         className="rounded-2xl px-4 py-4"
-                        style={{ background: 'rgba(0,0,0,0.16)' }}
+                        style={{
+                          background: 'rgba(11,17,24,0.2)',
+                          backdropFilter: 'blur(12px)',
+                          WebkitBackdropFilter: 'blur(12px)',
+                        }}
                       >
                         <p className="text-[1.45rem] font-bold leading-none tabular-nums text-white">
                           {metric.value}
@@ -363,10 +401,10 @@ function CheckoutContent() {
 
                   <div className="mt-5">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'rgba(255,255,255,0.42)' }}>
-                      สิ่งที่ปลดล็อกทันที
+                      การใช้งานที่เหมาะ
                     </p>
                     <div className="mt-3 space-y-2.5">
-                      {INCLUDED_NOW.slice(0, 4).map((item) => (
+                      {PROFESSIONAL_USE_CASES.map((item) => (
                         <div key={item} className="flex items-start gap-2.5">
                           <CheckIcon tone="dark" />
                           <p className="text-[13px] leading-6" style={{ color: 'rgba(255,255,255,0.8)' }}>
@@ -398,9 +436,9 @@ function CheckoutContent() {
                   className="mt-4 text-[2rem] font-bold leading-[1.08] tracking-[-0.03em]"
                   style={{ fontFamily: 'var(--font-display), Georgia, serif', color: '#1a3040' }}
                 >
-                  แพ็กเดียวที่ปลดล็อก
+                  แพ็กเดียวสำหรับ
                   <br />
-                  ทั้ง Deep + Research
+                  การประเมินเชิงลึก
                 </h2>
 
                 <div className="mt-5 flex items-end gap-2">
@@ -411,18 +449,19 @@ function CheckoutContent() {
                 </div>
 
                 <p className="mt-3 text-[13px] leading-6" style={{ color: '#55707f' }}>
-                  ชำระครั้งเดียว ไม่มีค่าสมาชิกรายเดือน และไม่ต้องซื้อ 300 ข้อเพิ่มแยกอีกครั้ง
+                  ชำระครั้งเดียวเพื่อปลดล็อกสิทธิ์การใช้งานแบบประเมินเชิงลึก รายงาน AI
+                  และเครื่องมือใช้งานต่อในระบบ
                 </p>
 
                 <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                   {[
-                    'ใช้ได้กับ 120 และ 300 ข้อ',
-                    'เก็บผลไว้ใน dashboard',
-                    'ชำระผ่าน Stripe อย่างปลอดภัย',
+                    'ครอบคลุมทั้งแบบประเมิน 120 และ 300 ข้อ',
+                    'ผลลัพธ์และประวัติการใช้งานอยู่ใน Dashboard เดียว',
+                    'ชำระผ่าน Stripe พร้อมปลดล็อกสิทธิ์ทันทีหลังยืนยัน',
                   ].map((note) => (
                     <div
                       key={note}
-                      className="rounded-2xl px-3.5 py-3 text-[12px] font-medium"
+                      className="rounded-2xl px-3.5 py-3 text-[12px] leading-5 font-medium"
                       style={{ background: 'white', color: '#355062', border: '1px solid rgba(69,98,118,0.1)' }}
                     >
                       {note}
@@ -438,7 +477,7 @@ function CheckoutContent() {
                 <div className="mt-3 space-y-2.5">
                   {INCLUDED_NOW.map((item) => (
                     <div key={item} className="flex items-start gap-2.5">
-                      <CheckIcon />
+                      <CheckIcon tone="light" />
                       <p className="text-[13px] leading-6" style={{ color: '#3d5a6a' }}>
                         {item}
                       </p>

@@ -83,6 +83,8 @@ export default function DashboardClient() {
   const [generatingGroupReport, setGeneratingGroupReport] = useState(false)
   const [groupReport, setGroupReport] = useState('')
   const [groupReportError, setGroupReportError] = useState<string | null>(null)
+  const [groupExportingPdf, setGroupExportingPdf] = useState(false)
+  const [groupExportError, setGroupExportError] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
@@ -415,6 +417,7 @@ export default function DashboardClient() {
     setGeneratingGroupReport(true)
     setGroupReport('')
     setGroupReportError(null)
+    setGroupExportError(null)
 
     try {
       const res = await fetch('/api/group-compare', {
@@ -456,6 +459,52 @@ export default function DashboardClient() {
       setGroupReportError(err instanceof Error ? err.message : 'ไม่สามารถสร้างรายงานกลุ่มได้ในขณะนี้')
     } finally {
       setGeneratingGroupReport(false)
+    }
+  }
+
+  async function handleSaveGroupPdf() {
+    if (!groupDynamics || !groupReport || groupMembers.length < MIN_GROUP_MEMBERS) return
+    setGroupExportingPdf(true)
+    setGroupExportError(null)
+
+    try {
+      const res = await fetch('/api/group-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: {
+            members: groupMembers.map(member => ({
+              label: member.label,
+              testType: member.test_type,
+              scores: { pct: member.scores.pct },
+            })),
+            method: groupReportMethod,
+            generatedAt: new Date().toISOString(),
+            metrics: {
+              teamBalanceIndex: groupDynamics.teamBalanceIndex,
+              executionStrength: groupDynamics.executionStrength,
+              innovationPivot: groupDynamics.innovationPivot,
+              socialCohesion: groupDynamics.socialCohesion,
+            },
+          },
+          report: groupReport,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ocean-group-dynamics-${groupMembers.length}-members.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setGroupExportError(err instanceof Error ? err.message : 'ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้')
+    } finally {
+      setGroupExportingPdf(false)
     }
   }
 
@@ -507,11 +556,13 @@ export default function DashboardClient() {
   useEffect(() => {
     setGroupReport('')
     setGroupReportError(null)
+    setGroupExportError(null)
   }, [groupSelectionSignature])
 
   useEffect(() => {
     setGroupReport('')
     setGroupReportError(null)
+    setGroupExportError(null)
   }, [groupReportMethod])
 
   const navActive = 'bg-[var(--accent-soft)] text-[var(--accent-strong)] font-semibold'
@@ -1148,11 +1199,24 @@ export default function DashboardClient() {
                             >
                               {generatingGroupReport ? 'Analyzing Group…' : 'Generate Report'}
                             </button>
+                            {groupReport && !generatingGroupReport && (
+                              <button
+                                onClick={handleSaveGroupPdf}
+                                disabled={groupExportingPdf}
+                                className="primary-button"
+                                style={{ minHeight: '2.25rem', padding: '0.45rem 0.9rem', fontSize: '0.75rem', borderRadius: '0.7rem' }}
+                              >
+                                {groupExportingPdf ? 'กำลังสร้าง PDF…' : 'Save PDF'}
+                              </button>
+                            )}
                           </div>
                         </div>
 
                         {groupReportError && (
                           <p className="mt-3 text-xs text-red-500">{groupReportError}</p>
+                        )}
+                        {groupExportError && (
+                          <p className="mt-3 text-xs text-red-500">{groupExportError}</p>
                         )}
 
                         {generatingGroupReport && !groupReport && (
