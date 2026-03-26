@@ -286,13 +286,13 @@ export default function DashboardClient() {
   const navIdle = 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
 
   return (
-    <main id="main" className="page-shell">
-      <div className="page-wrap max-w-7xl">
-        <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
+    <main id="main" className="page-shell dashboard-unified-bg lg:h-dvh lg:overflow-hidden lg:!p-0">
+      <div className="page-wrap max-w-7xl lg:max-w-none lg:h-full">
+        <div className="grid gap-4 lg:gap-3 lg:h-full lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
 
           {/* ── Left Sidebar ────────────────────────────────────── */}
-          <aside className="lg:sticky lg:top-6 space-y-4">
-            <div className="glass-panel rounded-[2rem] px-5 py-6">
+          <aside className="space-y-4 lg:sticky lg:top-0 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:py-3 lg:pl-3 scrollbar-hidden">
+            <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
                 OCEAN DASHBOARD
@@ -416,11 +416,19 @@ export default function DashboardClient() {
               </nav>
 
               <div className="mt-8">
-                <p className="px-3.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">โปรไฟล์ของคุณ ({profiles.length})</p>
+                <div className="mb-3 px-3.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[12px] font-semibold text-slate-600">คลังโปรไฟล์</p>
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                      {profiles.length} รายการ
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[10px] text-slate-400">เลือกรายการเพื่อเปิดดูผลวิเคราะห์</p>
+                </div>
                 {loading ? (
                   <p className="px-3.5 body-soft text-xs italic">กำลังโหลด...</p>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-2.5">
                     {myTests.length > 0 && (
                       <ProfileGroup
                         title={SOURCE_LABELS.test}
@@ -470,9 +478,9 @@ export default function DashboardClient() {
           </aside>
 
           {/* ── Right Panel ──────────────────────────────────────── */}
-          <div className="space-y-5">
+          <div className="space-y-5 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:py-3 lg:pr-3 scrollbar-hidden">
             {activeView === 'default' && (
-              <div className="glass-panel rounded-[2rem] px-8 py-10">
+              <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none sm:px-8 sm:py-10">
                 <span className="eyebrow">
                   <span className="accent-dot" aria-hidden="true" />
                   guidelines & overview
@@ -481,7 +489,7 @@ export default function DashboardClient() {
                 <p className="mt-2 text-slate-500 text-sm">เครื่องมือวิเคราะห์บุคลิกภาพระดับสากล เพื่อความเข้าใจตนเองและทีมงาน</p>
 
                 <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                  <section className="p-5 rounded-2xl border border-[var(--line)] bg-white/50 hover:bg-white hover:border-[var(--line-strong)] hover:shadow-sm transition-all space-y-3 cursor-default">
+                  <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-blue-500" style={{ background: 'rgba(59,130,246,0.08)' }}>
                       <IconCardSelf />
                     </div>
@@ -491,7 +499,7 @@ export default function DashboardClient() {
                     </p>
                   </section>
 
-                  <section className="p-5 rounded-2xl border border-[var(--line)] bg-white/50 hover:bg-white hover:border-[var(--line-strong)] hover:shadow-sm transition-all space-y-3 cursor-default">
+                  <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-violet-500" style={{ background: 'rgba(139,92,246,0.08)' }}>
                       <IconCardTeam />
                     </div>
@@ -501,7 +509,7 @@ export default function DashboardClient() {
                     </p>
                   </section>
 
-                  <section className="p-5 rounded-2xl border border-[var(--line)] bg-white/50 hover:bg-white hover:border-[var(--line-strong)] hover:shadow-sm transition-all space-y-3 cursor-default">
+                  <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-500" style={{ background: 'rgba(16,185,129,0.08)' }}>
                       <IconCardTrend />
                     </div>
@@ -511,7 +519,7 @@ export default function DashboardClient() {
                     </p>
                   </section>
 
-                  <section className="p-5 rounded-2xl border border-[var(--line)] bg-white/50 hover:bg-white hover:border-[var(--line-strong)] hover:shadow-sm transition-all space-y-3 cursor-default">
+                  <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500" style={{ background: 'rgba(245,158,11,0.08)' }}>
                       <IconCardShield />
                     </div>
@@ -522,7 +530,7 @@ export default function DashboardClient() {
                   </section>
                 </div>
 
-                <div className="mt-6 flex items-start gap-4 p-5 rounded-2xl border border-[var(--line)] bg-white/50">
+                <div className="mt-6 flex items-start gap-4 rounded-2xl bg-white p-5">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-[var(--accent)]" style={{ background: 'rgba(95,116,130,0.08)' }}>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
                   </div>
@@ -539,7 +547,7 @@ export default function DashboardClient() {
             {activeView === 'compare' && (
               <>
                 {/* ── Profile Selection ── */}
-                <div className="glass-panel rounded-2xl relative z-10">
+                <div className="glass-panel relative z-10 rounded-2xl border border-[var(--line)] bg-transparent shadow-none">
                   <div className="px-6 pt-5 pb-4 border-b border-[var(--line)] flex items-center justify-between gap-4">
                     <div>
                       <h2 className="text-sm font-semibold text-[var(--text-main)]">Compare Profiles</h2>
@@ -601,7 +609,7 @@ export default function DashboardClient() {
 
                 {/* ── Score Bars ── */}
                 {(profileA || profileB) && (
-                  <div className="glass-panel rounded-2xl px-6 py-6">
+                  <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">Five Factor Scores</h2>
                       <div className="flex items-center gap-3 text-[10px] font-medium text-[var(--text-soft)]">
@@ -685,7 +693,7 @@ export default function DashboardClient() {
                 )}
 
                 {profileA && !profileB && profileA.ai_report && (
-                  <div className="glass-panel rounded-2xl px-6 py-6">
+                  <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
                     <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)] mb-4">Deep AI Report</h2>
                     <div className="prose prose-sm max-w-none text-[var(--text-main)]">
                       <ReactMarkdown>{profileA.ai_report}</ReactMarkdown>
@@ -694,7 +702,7 @@ export default function DashboardClient() {
                 )}
 
                 {profileA && profileB && (comparing || aiReport) && (
-                  <div className="glass-panel rounded-2xl px-6 py-6">
+                  <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">AI Comparison Report</h2>
                       {aiReport && !comparing && (
@@ -721,7 +729,7 @@ export default function DashboardClient() {
             )}
 
             {activeView === 'group-compare' && (
-              <div className="glass-panel rounded-[2rem] px-8 py-10 text-center relative overflow-hidden">
+              <div className="glass-panel relative overflow-hidden rounded-[2rem] border border-[var(--line)] bg-transparent px-8 py-10 text-center shadow-none">
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[var(--accent)]" style={{ background: 'rgba(95,116,130,0.09)' }}>
                   <IconUsersLg />
                 </div>
@@ -731,7 +739,7 @@ export default function DashboardClient() {
                 </p>
 
                 {/* Mockup visualization */}
-                <div className="mt-10 max-w-lg mx-auto p-6 rounded-[2rem] bg-slate-50 border border-slate-100 relative overflow-hidden group">
+                <div className="group relative mx-auto mt-10 max-w-lg overflow-hidden rounded-[2rem] bg-white p-6">
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-blue-500/5 opacity-50" />
                   <div className="relative z-10 text-left">
                     <div className="flex justify-between items-end mb-8">
@@ -809,7 +817,7 @@ export default function DashboardClient() {
                   return (
                     <>
                       {/* Header Card */}
-                      <div className="glass-panel rounded-[2rem] px-8 py-8">
+                      <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-7 shadow-none sm:px-8 sm:py-8">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                           <div>
                             <span className="eyebrow">
@@ -844,7 +852,7 @@ export default function DashboardClient() {
                       </div>
 
                       {/* Scores Card */}
-                      <div className="glass-panel rounded-2xl px-8 py-8">
+                      <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-7 shadow-none sm:px-8 sm:py-8">
                         <div className="flex items-center justify-between mb-8">
                           <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Personality Dimensions</h3>
                           <div className="h-px flex-1 mx-6 bg-slate-100" />
@@ -909,7 +917,7 @@ export default function DashboardClient() {
 
                       {/* AI Report Card */}
                       {p.ai_report ? (
-                        <div className="glass-panel rounded-[2rem] px-8 py-10">
+                        <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none sm:px-8 sm:py-10">
                           <div className="flex items-center gap-4 mb-8">
                             <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500">
                               <IconBot />
@@ -924,7 +932,7 @@ export default function DashboardClient() {
                           </div>
                         </div>
                       ) : (
-                        <div className="glass-panel rounded-[2rem] px-8 py-12 text-center">
+                        <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-10 text-center shadow-none sm:px-8 sm:py-12">
                           <div className="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center mx-auto mb-6 text-slate-300">
                             <IconBot />
                           </div>
@@ -966,26 +974,31 @@ function ProfileGroup({
   onDelete: (id: string) => void
 }) {
   return (
-    <div>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-faint)] mb-2 px-1">{title}</p>
-      <div className="space-y-0.5">
+    <div className="rounded-xl bg-white p-3">
+      <div className="mb-1.5 flex items-center justify-between px-1">
+        <p className="text-[11px] font-semibold text-slate-500">{title}</p>
+        <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500">
+          {profiles.length}
+        </span>
+      </div>
+
+      <div className="space-y-1">
         {profiles.map(p => {
           const isActive = viewingProfileId === p.id
           const isEditing = editingId === p.id
+          const { primary, secondary } = getProfileDisplayText(p)
 
           return (
             <div
               key={p.id}
-              className={`group flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer transition-colors ${
-                isActive ? 'bg-[var(--accent-soft)] ring-1 ring-[var(--accent-strong)]/10' :
-                'hover:bg-slate-50'
+              className={`group relative flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
+                isActive
+                  ? 'border-blue-200 bg-[var(--accent-soft)]'
+                  : 'border-transparent hover:border-slate-200 hover:bg-white'
               }`}
               onClick={() => !isEditing && onView(p.id)}
             >
-              {/* Active indicator dot */}
-              <div className="w-1.5 h-1.5 shrink-0 rounded-full flex items-center justify-center">
-                {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />}
-              </div>
+              <div className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full ${isActive ? 'bg-blue-500' : 'bg-transparent'}`} />
 
               {/* Label (editable) */}
               {isEditing ? (
@@ -999,20 +1012,23 @@ function ProfileGroup({
                     if (e.key === 'Escape') onEditChange(p.label)
                   }}
                   onClick={e => e.stopPropagation()}
-                  className="flex-1 rounded-md border border-[var(--line)] bg-white px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                  className="flex-1 rounded-md border border-[var(--line)] bg-white px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                 />
               ) : (
-                <span className="flex-1 text-sm text-[var(--text-main)] truncate">{p.label}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-sm font-medium text-[var(--text-main)]">{primary}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-slate-400">{secondary}</p>
+                </div>
               )}
 
               {/* Tier badge */}
               <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium ${TIER_COLORS[p.test_type]}`}>
-                {p.test_type}ข้อ
+                {p.test_type}
               </span>
 
               {/* Edit/Delete buttons */}
               {!isEditing && (
-                <div className="hidden group-hover:flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                   <button
                     onClick={() => onStartEdit(p.id, p.label)}
                     className="text-[var(--text-faint)] hover:text-[var(--accent)] p-1 rounded transition-colors"
@@ -1035,6 +1051,16 @@ function ProfileGroup({
       </div>
     </div>
   )
+}
+
+function getProfileDisplayText(profile: OceanProfile) {
+  const parts = profile.label.split('·').map(part => part.trim()).filter(Boolean)
+  const primary = parts[0] || profile.label
+  const formattedDate = new Date(profile.created_at).toLocaleDateString('th-TH')
+  return {
+    primary,
+    secondary: formattedDate,
+  }
 }
 
 function ProfileCombobox({
@@ -1096,7 +1122,7 @@ function ProfileCombobox({
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className={`w-full flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed py-4 px-4 text-center min-h-[84px] transition-all ${open ? 'border-[var(--accent)] bg-white' : 'border-[var(--line-strong)] bg-slate-50/60 hover:bg-white hover:border-slate-300'}`}
+        className={`w-full flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed py-4 px-4 text-center min-h-[84px] transition-all ${open ? 'border-[var(--accent)] bg-white' : 'border-[var(--line-strong)] bg-[var(--page-surface)] hover:bg-white hover:border-slate-300'}`}
       >
         <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">{slot}</div>
         <p className="text-[11px] font-medium text-[var(--text-soft)]">Profile {slot}</p>
@@ -1144,7 +1170,7 @@ function ProfileCombobox({
                       className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-slate-50 transition-colors text-left"
                     >
                       <span className="flex-1 text-xs text-[var(--text-main)] truncate">{p.label}</span>
-                      <span className={`text-[10px] rounded px-1.5 py-0.5 font-medium shrink-0 ${TIER_COLORS[p.test_type]}`}>{p.test_type}ข้อ</span>
+                      <span className={`text-[10px] rounded px-1.5 py-0.5 font-medium shrink-0 ${TIER_COLORS[p.test_type]}`}>{p.test_type}</span>
                     </button>
                   ))}
                 </div>

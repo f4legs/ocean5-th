@@ -73,10 +73,7 @@ export default function Home() {
 
         {/* ── Upgrade / Premium section — split screen ── */}
         <section className="mt-7">
-          <div
-            className="rounded-[2rem] overflow-hidden lg:flex"
-            style={{ boxShadow: 'var(--shadow-card)' }}
-          >
+          <div className="rounded-[2rem] overflow-hidden lg:flex">
             {/* Left: gradient value-prop */}
             <div
               className="px-8 pt-10 pb-9 sm:px-10 sm:pt-12 lg:flex-[3] lg:px-12 lg:py-14"

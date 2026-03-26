@@ -63,7 +63,7 @@ export default function LoginForm() {
       <div className="w-full max-w-[420px]">
         <div
           className="rounded-[2rem] px-7 py-10 sm:px-10"
-          style={{ background: 'white', boxShadow: 'var(--shadow-card)' }}
+          style={{ background: 'white' }}
         >
           <span className="eyebrow">
             <span className="accent-dot" aria-hidden="true" />

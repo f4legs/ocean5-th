@@ -6,7 +6,7 @@
 
   /* Surfaces — tonal stack (no border needed between levels) */
   --page-base: #e8ecef;
-  --page-surface: #f1f4f6;
+  --page-surface: #f9f9f9;
   --panel: rgba(255, 255, 255, 0.92);
   --panel-strong: rgba(255, 255, 255, 0.98);
 
@@ -28,7 +28,6 @@
   /* Shadows */
   --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.05);
   --shadow-panel: 0 18px 40px rgba(15, 23, 42, 0.07);
-  --shadow-card: 0 32px 80px rgba(15, 23, 42, 0.12);
 
   /* Hero gradient */
   --gradient-hero: linear-gradient(150deg, #456276 0%, #233643 100%);
@@ -95,6 +94,15 @@ select:focus-visible {
   width: 100%;
   max-width: 76rem;
   margin: 0 auto;
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── Hero Section ── */
@@ -372,7 +380,14 @@ select:focus-visible {
 
 .glass-panel {
   background: white;
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
+}
+
+/* Dashboard: unify the page background and avoid per-card fills */
+.dashboard-unified-bg .glass-panel {
+  background: var(--page-surface);
+  box-shadow: none;
+  border-color: transparent;
 }
 
 .section-panel {
