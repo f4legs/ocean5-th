@@ -295,11 +295,19 @@ No aggressive animations. Interactions should feel precise and calm.
 
 ---
 
-## What to Avoid
+## Do's and Don'ts
 
-- No emoji in UI chrome (eyebrows, buttons, labels) — use SVG icons
-- No hard box borders as primary structure dividers — use tonal bg shifts
-- No pure black text — use `#1a3040` or `--text-main`
-- No `box-shadow` on text
-- No `border-radius` less than `0.75rem` on cards
-- No Tailwind color utilities for brand colors — use CSS variables or inline `style={{}}`
+| Do | Don't |
+|:---|:------|
+| Use generous spacing (`spacing-12` / `spacing-16`) to let the layout breathe | Don't crowd data — if it feels tight, double the spacing |
+| Use tonal background shifts for structural separation | Don't use 1px solid borders to divide sections |
+| Use `--font-display` (Noto Serif Thai) for large Thai headlines | Don't use overly rounded corners — stay at `0.75rem`+ on cards |
+| Apply 4–6% opacity ambient shadows only for floating elements | Don't use default drop shadows or high-opacity blacks |
+| Use "Ghost Borders" (`rgba(95,116,130,0.15)`) only for subtle accessibility affordances | Don't use high-contrast dividers between list items |
+| Use CSS variables or inline `style={{}}` for all brand colors | Don't use Tailwind color utilities for brand colors |
+
+**Always avoid:**
+- Emoji in UI chrome (eyebrows, buttons, nav labels) — use SVG icons instead
+- Pure black text — use `#1a3040` / `--text-main`
+- `box-shadow` on text
+- `border-radius` below `0.75rem` on cards or panels
