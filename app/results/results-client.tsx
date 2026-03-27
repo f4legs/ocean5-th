@@ -76,7 +76,6 @@ export default function ResultsClient() {
 
           accumulated += decoder.decode(value, { stream: true })
           setReport(accumulated)
-          setLoading(false)
         }
 
         if (requestId !== activeRequestId.current) return
@@ -256,6 +255,7 @@ export default function ResultsClient() {
       : loadingSeconds < 70
         ? 'AI กำลังเชื่อมโยงคะแนนทั้ง 5 มิติให้เป็นรายงานเดียวกัน'
         : 'AI กำลังเรียบเรียงรายงานฉบับเต็มให้อ่านง่ายและละเอียด'
+  const isReportComplete = Boolean(report) && !loading
 
   function handleReevaluate() {
     if (!scores || !session) return
@@ -267,7 +267,7 @@ export default function ResultsClient() {
   }
 
   async function handleDownloadJson() {
-    if (!exportData) return
+    if (!exportData || !isReportComplete) return
 
     setExportError(null)
 
@@ -309,7 +309,7 @@ export default function ResultsClient() {
   }
 
   function handleDownloadPdf() {
-    if (!session || !exportData || !report) return
+    if (!session || !exportData || !report || !isReportComplete) return
 
     setExportError(null)
     setExportingPdf(true)
@@ -323,6 +323,93 @@ export default function ResultsClient() {
       .finally(() => {
         setExportingPdf(false)
       })
+  }
+
+  function renderActionsCard(className = '') {
+    return (
+      <div className={`section-panel no-print rounded-[1.75rem] p-5 sm:p-6 ${className}`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+          การใช้งาน
+        </p>
+        <div className="mt-4 space-y-3 no-print">
+          <button
+            onClick={handleDownloadPdf}
+            disabled={!isReportComplete || exportingPdf}
+            className="primary-button w-full text-sm"
+          >
+            {exportingPdf ? 'กำลังสร้าง PDF...' : loading ? 'รอรายงาน AI...' : 'ดาวน์โหลด PDF'}
+          </button>
+
+          {exportData && (
+            <button
+              onClick={handleDownloadJson}
+              disabled={!isReportComplete}
+              className="secondary-button w-full text-sm"
+            >
+              ดาวน์โหลด JSON
+            </button>
+          )}
+
+          <button
+            onClick={() => window.print()}
+            disabled={!isReportComplete}
+            className="secondary-button w-full text-sm"
+          >
+            เปิดหน้าพิมพ์
+          </button>
+
+          <div className="border-t border-[rgba(95,116,130,0.12)] pt-3 mt-1">
+            <Link
+              href="/checkout"
+              className="primary-button w-full justify-center text-sm"
+            >
+              ทดสอบเชิงลึก 120 ข้อ ฿49 →
+            </Link>
+            <p className="mt-2 text-xs text-[var(--text-faint)] text-center leading-[1.5]">
+              วิเคราะห์ 30 ลักษณะย่อย · รายงาน AI 2,000 คำ
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowRestartWarning(true)}
+            className="tertiary-button w-full text-sm"
+          >
+            ทำแบบทดสอบอีกครั้ง
+          </button>
+
+          {showRestartWarning && (
+            <div className="mt-3 rounded-[1.2rem] border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs leading-[1.6] text-amber-800">
+              <p className="font-medium">คะแนนและข้อมูลทั้งหมดจะถูกลบออก</p>
+              <p className="mt-0.5 text-amber-700">รวมถึงคำตอบ โปรไฟล์ และรายงาน AI ต้องการดำเนินการต่อหรือไม่?</p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={handleRestart}
+                  className="rounded-full bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                >
+                  ยืนยัน ลบและเริ่มใหม่
+                </button>
+                <button
+                  onClick={() => setShowRestartWarning(false)}
+                  className="rounded-full border border-amber-300 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                >
+                  ยกเลิก
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <p className="body-faint mt-3 text-xs leading-[1.5]">
+          ระบบจะสร้างไฟล์ PDF จากฝั่งเซิร์ฟเวอร์แล้วดาวน์โหลดหรือเปิดแผ่นแชร์ให้โดยอัตโนมัติ
+        </p>
+
+        {exportError && (
+          <div className="mt-4 rounded-[1.2rem] border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs leading-[1.5] text-amber-800">
+            {exportError}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -581,6 +668,7 @@ export default function ResultsClient() {
                 </div>
               )}
             </div>
+            {renderActionsCard('lg:hidden')}
           </div>
 
           <aside className="results-side space-y-6">
@@ -632,86 +720,7 @@ export default function ResultsClient() {
               </div>
             )}
 
-            <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                การใช้งาน
-              </p>
-              <div className="mt-4 space-y-3 no-print">
-                <button
-                  onClick={handleDownloadPdf}
-                  disabled={loading || !report || exportingPdf}
-                  className="primary-button w-full text-sm"
-                >
-                  {exportingPdf ? 'กำลังสร้าง PDF...' : 'ดาวน์โหลด PDF'}
-                </button>
-
-                {exportData && (
-                  <button
-                    onClick={handleDownloadJson}
-                    className="secondary-button w-full text-sm"
-                  >
-                    ดาวน์โหลด JSON
-                  </button>
-                )}
-
-                <button
-                  onClick={() => window.print()}
-                  className="secondary-button w-full text-sm"
-                >
-                  เปิดหน้าพิมพ์
-                </button>
-
-                <div className="border-t border-[rgba(95,116,130,0.12)] pt-3 mt-1">
-                  <Link
-                    href="/checkout"
-                    className="primary-button w-full justify-center text-sm"
-                  >
-                    ทดสอบเชิงลึก 120 ข้อ ฿49 →
-                  </Link>
-                  <p className="mt-2 text-xs text-[var(--text-faint)] text-center leading-[1.5]">
-                    วิเคราะห์ 30 ลักษณะย่อย · รายงาน AI 2,000 คำ
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setShowRestartWarning(true)}
-                  className="tertiary-button w-full text-sm"
-                >
-                  ทำแบบทดสอบอีกครั้ง
-                </button>
-
-                {showRestartWarning && (
-                  <div className="mt-3 rounded-[1.2rem] border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs leading-[1.6] text-amber-800">
-                    <p className="font-medium">คะแนนและข้อมูลทั้งหมดจะถูกลบออก</p>
-                    <p className="mt-0.5 text-amber-700">รวมถึงคำตอบ โปรไฟล์ และรายงาน AI ต้องการดำเนินการต่อหรือไม่?</p>
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        onClick={handleRestart}
-                        className="rounded-full bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700"
-                      >
-                        ยืนยัน ลบและเริ่มใหม่
-                      </button>
-                      <button
-                        onClick={() => setShowRestartWarning(false)}
-                        className="rounded-full border border-amber-300 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
-                      >
-                        ยกเลิก
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <p className="body-faint mt-3 text-xs leading-[1.5]">
-                ระบบจะสร้างไฟล์ PDF จากฝั่งเซิร์ฟเวอร์แล้วดาวน์โหลดหรือเปิดแผ่นแชร์ให้โดยอัตโนมัติ
-              </p>
-
-              {exportError && (
-                <div className="mt-4 rounded-[1.2rem] border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs leading-[1.5] text-amber-800">
-                  {exportError}
-                </div>
-              )}
-            </div>
+            {renderActionsCard('hidden lg:block')}
 
             <p className="body-faint no-print px-2 text-center text-xs leading-[1.5]">
               อ้างอิง: IPIP / ipip.ori.org · Thai translation by Panida Yomaboot &amp; Andrew J. Cooper · App by FARS-AI Cognitive Science Team

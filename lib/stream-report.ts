@@ -75,7 +75,6 @@ export function startStreamReport(opts: StreamReportOptions): () => void {
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
         setReport(accumulated)
-        setLoading(false)
       }
 
       if (requestId !== activeRequestId.current) return

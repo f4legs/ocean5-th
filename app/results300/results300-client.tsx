@@ -214,6 +214,62 @@ export default function Results300Client() {
     loadingSeconds < 30 ? 'AI กำลังวิเคราะห์ข้อมูลระดับวิจัย 300 ข้อ' :
     loadingSeconds < 70 ? 'AI กำลังสังเคราะห์รูปแบบบุคลิกภาพเชิงลึก' :
     'AI กำลังเรียบเรียงรายงานฉบับสมบูรณ์'
+  const isReportComplete = Boolean(report) && !loading
+
+  function renderActionsCard(className = '') {
+    return (
+      <div className={`section-panel rounded-[1.75rem] p-5 sm:p-6 ${className}`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">การใช้งาน</p>
+        <div className="mt-4 space-y-2">
+          <Link href="/dashboard" className="primary-button w-full justify-center text-sm flex items-center gap-2">
+            <IconHome />
+            ไปที่ Dashboard
+          </Link>
+          <Link href="/quiz300?resume=1" className="secondary-button w-full justify-center text-sm flex items-center gap-2">
+            <IconChevronLeft />
+            กลับหน้าทดสอบ
+          </Link>
+          <button
+            onClick={() => void handleRetake()}
+            className={`w-full justify-center text-sm rounded-xl px-4 py-3 font-medium transition-all border flex items-center gap-2 ${
+              retakeConfirm
+                ? 'border-red-400 bg-red-50 text-red-600 hover:bg-red-100'
+                : 'secondary-button opacity-60'
+            }`}
+          >
+            {retakeConfirm ? <IconAlert /> : null}
+            {retakeConfirm ? 'ยืนยัน — ข้อมูลจะถูกลบ กดอีกครั้ง' : 'ทำใหม่ 300 ข้อ'}
+          </button>
+          {retakeConfirm && (
+            <p className="text-xs text-center text-red-500 -mt-1">
+              ผลเดิมยังอยู่ใน Dashboard · Draft ของการทดสอบนี้จะถูกล้าง
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-[var(--line)] space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">ส่งออก</p>
+          <button
+            onClick={handleExportJSON}
+            disabled={!isReportComplete}
+            className="secondary-button w-full justify-center text-sm flex items-center gap-2"
+          >
+            <IconDownload />
+            ดาวน์โหลด JSON
+          </button>
+          <button
+            onClick={() => void handleExportPDF()}
+            disabled={exportingPDF || !isReportComplete}
+            className="secondary-button w-full justify-center text-sm flex items-center gap-2"
+          >
+            <IconFilePDF />
+            {exportingPDF ? 'กำลังสร้าง PDF...' : loading ? 'รอรายงาน AI...' : 'ดาวน์โหลด PDF'}
+          </button>
+          {exportError && <p className="text-xs text-red-500 mt-1">{exportError}</p>}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <main id="main" className="page-shell results-page">
@@ -247,6 +303,7 @@ export default function Results300Client() {
               estimatedTime="3-5 นาที"
               onRetry={() => triggerStreamReport(scores, accessToken, profileId)}
             />
+            {renderActionsCard('lg:hidden')}
           </div>
 
           <aside className="results-side space-y-6">
@@ -263,53 +320,7 @@ export default function Results300Client() {
               />
             )}
 
-            {/* Actions */}
-            <div className="section-panel rounded-[1.75rem] p-5 sm:p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">การใช้งาน</p>
-              <div className="mt-4 space-y-2">
-                <Link href="/dashboard" className="primary-button w-full justify-center text-sm flex items-center gap-2">
-                  <IconHome />
-                  ไปที่ Dashboard
-                </Link>
-                <Link href="/quiz300?resume=1" className="secondary-button w-full justify-center text-sm flex items-center gap-2">
-                  <IconChevronLeft />
-                  กลับหน้าทดสอบ
-                </Link>
-                <button
-                  onClick={() => void handleRetake()}
-                  className={`w-full justify-center text-sm rounded-xl px-4 py-3 font-medium transition-all border flex items-center gap-2 ${
-                    retakeConfirm
-                      ? 'border-red-400 bg-red-50 text-red-600 hover:bg-red-100'
-                      : 'secondary-button opacity-60'
-                  }`}
-                >
-                  {retakeConfirm ? <IconAlert /> : null}
-                  {retakeConfirm ? 'ยืนยัน — ข้อมูลจะถูกลบ กดอีกครั้ง' : 'ทำใหม่ 300 ข้อ'}
-                </button>
-                {retakeConfirm && (
-                  <p className="text-xs text-center text-red-500 -mt-1">
-                    ผลเดิมยังอยู่ใน Dashboard · Draft ของการทดสอบนี้จะถูกล้าง
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-[var(--line)] space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">ส่งออก</p>
-                <button onClick={handleExportJSON} className="secondary-button w-full justify-center text-sm flex items-center gap-2">
-                  <IconDownload />
-                  ดาวน์โหลด JSON
-                </button>
-                <button
-                  onClick={() => void handleExportPDF()}
-                  disabled={exportingPDF || loading}
-                  className="secondary-button w-full justify-center text-sm flex items-center gap-2"
-                >
-                  <IconFilePDF />
-                  {exportingPDF ? 'กำลังสร้าง PDF...' : loading ? 'รอรายงาน AI...' : 'ดาวน์โหลด PDF'}
-                </button>
-                {exportError && <p className="text-xs text-red-500 mt-1">{exportError}</p>}
-              </div>
-            </div>
+            {renderActionsCard('hidden lg:block')}
 
             <p className="body-faint px-2 text-center text-xs leading-[1.5]">
               อ้างอิง: IPIP-NEO-300 · Goldberg et al. (2006) · ipip.ori.org
