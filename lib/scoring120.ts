@@ -21,6 +21,14 @@ export interface FullScoreResult {
   facets: Record<FacetCode, FacetScore>
 }
 
+export const FACETS_BY_DOMAIN: Record<Factor, FacetCode[]> = {
+  N: ['N1', 'N2', 'N3', 'N4', 'N5', 'N6'],
+  E: ['E1', 'E2', 'E3', 'E4', 'E5', 'E6'],
+  O: ['O1', 'O2', 'O3', 'O4', 'O5', 'O6'],
+  A: ['A1', 'A2', 'A3', 'A4', 'A5', 'A6'],
+  C: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'],
+}
+
 // Facet → domain mapping
 export const FACET_DOMAIN: Record<FacetCode, Factor> = {
   N1: 'N', N2: 'N', N3: 'N', N4: 'N', N5: 'N', N6: 'N',
@@ -30,25 +38,51 @@ export const FACET_DOMAIN: Record<FacetCode, Factor> = {
   C1: 'C', C2: 'C', C3: 'C', C4: 'C', C5: 'C', C6: 'C',
 }
 
-export const FACET_NAMES: Record<FacetCode, string> = {
-  N1: 'ความวิตกกังวล', N2: 'ความโกรธง่าย', N3: 'ภาวะซึมเศร้า',
-  N4: 'ความเขินอาย', N5: 'การขาดการยับยั้งชั่งใจ', N6: 'ความเปราะบาง',
-  E1: 'ความเป็นมิตร', E2: 'ความชอบสังคม', E3: 'ความกล้าแสดงออก',
-  E4: 'ระดับความกระตือรือร้น', E5: 'การแสวงหาความตื่นเต้น', E6: 'ความร่าเริง',
-  O1: 'จินตนาการ', O2: 'ความสนใจด้านศิลปะ', O3: 'ความอ่อนไหวทางอารมณ์',
-  O4: 'ความชอบผจญภัย', O5: 'ความสนใจด้านสติปัญญา', O6: 'ความเปิดกว้างทางความคิด',
-  A1: 'ความไว้วางใจ', A2: 'ความซื่อสัตย์', A3: 'ความเห็นอกเห็นใจ',
-  A4: 'ความร่วมมือ', A5: 'ความถ่อมตน', A6: 'ความเห็นใจผู้อื่น',
-  C1: 'ความเชื่อมั่นในตนเอง', C2: 'ความเป็นระเบียบ', C3: 'ความรับผิดชอบต่อหน้าที่',
-  C4: 'ความมุ่งมั่นสู่ความสำเร็จ', C5: 'ความมีวินัยในตนเอง', C6: 'ความรอบคอบ',
+export const FACET_LABELS: Record<FacetCode, { th: string; en: string }> = {
+  N1: { th: 'ความวิตกกังวล', en: 'Anxiety' },
+  N2: { th: 'ความโกรธง่าย', en: 'Anger' },
+  N3: { th: 'ภาวะซึมเศร้า', en: 'Depression' },
+  N4: { th: 'ความเขินอาย', en: 'Self-Consciousness' },
+  N5: { th: 'การขาดการยับยั้งชั่งใจ', en: 'Immoderation' },
+  N6: { th: 'ความเปราะบาง', en: 'Vulnerability' },
+  E1: { th: 'ความเป็นมิตร', en: 'Friendliness' },
+  E2: { th: 'ความชอบสังคม', en: 'Gregariousness' },
+  E3: { th: 'ความกล้าแสดงออก', en: 'Assertiveness' },
+  E4: { th: 'ระดับความกระตือรือร้น', en: 'Activity Level' },
+  E5: { th: 'การแสวงหาความตื่นเต้น', en: 'Excitement-Seeking' },
+  E6: { th: 'ความร่าเริง', en: 'Cheerfulness' },
+  O1: { th: 'จินตนาการ', en: 'Imagination' },
+  O2: { th: 'ความสนใจด้านศิลปะ', en: 'Artistic Interests' },
+  O3: { th: 'ความอ่อนไหวทางอารมณ์', en: 'Emotionality' },
+  O4: { th: 'ความชอบผจญภัย', en: 'Adventurousness' },
+  O5: { th: 'ความสนใจด้านสติปัญญา', en: 'Intellect' },
+  O6: { th: 'ความเปิดกว้างทางความคิด', en: 'Liberalism' },
+  A1: { th: 'ความไว้วางใจ', en: 'Trust' },
+  A2: { th: 'ความซื่อสัตย์', en: 'Morality' },
+  A3: { th: 'ความเห็นอกเห็นใจ', en: 'Altruism' },
+  A4: { th: 'ความร่วมมือ', en: 'Cooperation' },
+  A5: { th: 'ความถ่อมตน', en: 'Modesty' },
+  A6: { th: 'ความเห็นใจผู้อื่น', en: 'Sympathy' },
+  C1: { th: 'ความเชื่อมั่นในตนเอง', en: 'Self-Efficacy' },
+  C2: { th: 'ความเป็นระเบียบ', en: 'Orderliness' },
+  C3: { th: 'ความรับผิดชอบต่อหน้าที่', en: 'Dutifulness' },
+  C4: { th: 'ความมุ่งมั่นสู่ความสำเร็จ', en: 'Achievement-Striving' },
+  C5: { th: 'ความมีวินัยในตนเอง', en: 'Self-Discipline' },
+  C6: { th: 'ความรอบคอบ', en: 'Cautiousness' },
 }
+
+export const FACET_NAMES = Object.fromEntries(
+  Object.entries(FACET_LABELS).map(([code, label]) => [code, label.th])
+) as Record<FacetCode, string>
+
+export const FACET_NAMES_EN = Object.fromEntries(
+  Object.entries(FACET_LABELS).map(([code, label]) => [code, label.en])
+) as Record<FacetCode, string>
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
 
 function domainAverage(facets: Record<FacetCode, FacetScore>, domain: Factor): number {
-  const codes = Object.entries(FACET_DOMAIN)
-    .filter(([, d]) => d === domain)
-    .map(([code]) => code as FacetCode)
+  const codes = FACETS_BY_DOMAIN[domain]
   const sum = codes.reduce((acc, code) => acc + facets[code].pct, 0)
   return clamp(sum / codes.length)
 }
@@ -90,9 +124,7 @@ export function calcScores120(
   for (const factor of ['N', 'E', 'O', 'A', 'C'] as Factor[]) {
     domains.pct[factor] = domainAverage(facets, factor)
     // Raw = sum of facet raws for this domain (6 facets × 4 items each = 24 max per domain)
-    const codes = Object.entries(FACET_DOMAIN)
-      .filter(([, d]) => d === factor)
-      .map(([c]) => c as FacetCode)
+    const codes = FACETS_BY_DOMAIN[factor]
     domains.raw[factor] = codes.reduce((acc, c) => acc + (facetRaw[c] ?? 0), 0)
   }
 
@@ -133,9 +165,7 @@ export function calcScores300(
   }
   for (const factor of ['N', 'E', 'O', 'A', 'C'] as Factor[]) {
     domains.pct[factor] = domainAverage(facets, factor)
-    const codes = Object.entries(FACET_DOMAIN)
-      .filter(([, d]) => d === factor)
-      .map(([c]) => c as FacetCode)
+    const codes = FACETS_BY_DOMAIN[factor]
     domains.raw[factor] = codes.reduce((acc, c) => acc + (facetRaw[c] ?? 0), 0)
   }
 

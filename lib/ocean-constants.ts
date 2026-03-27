@@ -16,15 +16,15 @@ export const LABELS = [
 export const FACTOR_ORDER: Factor[] = ['O', 'C', 'E', 'A', 'N']
 
 // Facet display order (grouped by domain) for deep results
-export const FACET_DOMAIN_ORDER: Factor[] = ['N', 'E', 'O', 'A', 'C']
+export const FACET_DOMAIN_ORDER: Factor[] = ['O', 'C', 'E', 'A', 'N']
 
 // Domain labels, sublabels, and descriptions (canonical — supersedes DIMENSION_INFO)
-export const DOMAIN_LABELS: Record<Factor, { label: string; sublabel: string; description: string }> = {
-  O: { label: 'การเปิดรับประสบการณ์', sublabel: 'OPENNESS',          description: 'จินตนาการ ความคิดสร้างสรรค์ และความอยากรู้อยากเห็น' },
-  C: { label: 'ความรับผิดชอบ',         sublabel: 'CONSCIENTIOUSNESS', description: 'ความเป็นระเบียบ ความมุ่งมั่น และวินัยในตนเอง' },
-  E: { label: 'ความเปิดเผย',           sublabel: 'EXTRAVERSION',      description: 'ความกระตือรือร้น ความชอบสังคม และความร่าเริง' },
-  A: { label: 'ความเป็นมิตร',          sublabel: 'AGREEABLENESS',     description: 'ความร่วมมือ ความไว้วางใจ และความเห็นอกเห็นใจ' },
-  N: { label: 'ความไม่มั่นคงทางอารมณ์', sublabel: 'NEUROTICISM',       description: 'ความวิตกกังวล ความอ่อนไหว และการรับมือกับความเครียด' },
+export const DOMAIN_LABELS: Record<Factor, { label: string; english: string; sublabel: string; description: string }> = {
+  O: { label: 'การเปิดรับประสบการณ์', english: 'Openness',         sublabel: 'OPENNESS',          description: 'จินตนาการ ความคิดสร้างสรรค์ และความอยากรู้อยากเห็น' },
+  C: { label: 'ความรับผิดชอบ',         english: 'Conscientiousness', sublabel: 'CONSCIENTIOUSNESS', description: 'ความเป็นระเบียบ ความมุ่งมั่น และวินัยในตนเอง' },
+  E: { label: 'ความเปิดเผย',           english: 'Extraversion',      sublabel: 'EXTRAVERSION',      description: 'ความกระตือรือร้น ความชอบสังคม และความร่าเริง' },
+  A: { label: 'ความเป็นมิตร',          english: 'Agreeableness',     sublabel: 'AGREEABLENESS',     description: 'ความร่วมมือ ความไว้วางใจ และความเห็นอกเห็นใจ' },
+  N: { label: 'ความไม่มั่นคงทางอารมณ์', english: 'Neuroticism',      sublabel: 'NEUROTICISM',       description: 'ความวิตกกังวล ความอ่อนไหว และการรับมือกับความเครียด' },
 }
 
 // Domain color tokens — hues: O=210, C=38, E=158, A=268, N=348

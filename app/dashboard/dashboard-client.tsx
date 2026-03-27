@@ -11,6 +11,7 @@ import { FACTOR_ORDER, type Factor } from '@/lib/ocean-constants'
 import { computeGroupDynamics } from '@/lib/group-dynamics'
 import { normalizeMarkdown } from '@/lib/markdown'
 import { isPublicDevEmail } from '@/lib/dev-access'
+import FacetAnalysisGrid from '@/components/results/facet-analysis-grid'
 import {
   IconClose, IconHome, IconBarChart, IconUsers, IconUpload, IconMail,
   IconFileEdit, IconBot, IconBug, IconLogOut, IconPencil, IconTrash,
@@ -1677,7 +1678,10 @@ export default function DashboardClient() {
                                     <span className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 group-hover:bg-white group-hover:border-slate-200 transition-colors">
                                       {factor}
                                     </span>
-                                    <span className="text-sm font-bold text-slate-700">{info.label}</span>
+                                    <div>
+                                      <p className="text-sm font-bold text-slate-700">{info.label}</p>
+                                      <p className="text-[11px] text-slate-400">{info.sublabel}</p>
+                                    </div>
                                   </div>
                                   <span className="text-sm font-black text-slate-900 tabular-nums">{Math.round(score)}%</span>
                                 </div>
@@ -1706,17 +1710,8 @@ export default function DashboardClient() {
                               </span>
                               Detailed Analysis (30 Facets)
                             </summary>
-                            <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
-                              {Object.entries(FACET_NAMES).map(([code, name]) => {
-                                const facet = p.scores.facets?.[code]
-                                if (!facet) return null
-                                return (
-                                  <div key={code} className="flex items-center justify-between py-1.5 border-b border-slate-50">
-                                    <span className="text-[11px] text-slate-500 truncate pr-4">{name}</span>
-                                    <span className="text-[11px] font-bold text-slate-700 tabular-nums">{Math.round(facet.pct)}%</span>
-                                  </div>
-                                )
-                              })}
+                            <div className="mt-6">
+                              <FacetAnalysisGrid facets={p.scores.facets} />
                             </div>
                           </details>
                         )}
