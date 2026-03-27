@@ -99,6 +99,11 @@ export default function DashboardClient() {
   const [profileShareCopiedProfileId, setProfileShareCopiedProfileId] = useState<string | null>(null)
   const [profileShareLoading, setProfileShareLoading] = useState(false)
   const [profileShareError, setProfileShareError] = useState<string | null>(null)
+  const [pendingDeleteProfile, setPendingDeleteProfile] = useState<OceanProfile | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingProfileId, setDeletingProfileId] = useState<string | null>(null)
+  const [analyzingProfileId, setAnalyzingProfileId] = useState<string | null>(null)
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [devMockPct, setDevMockPct] = useState<MockOceanPct>(DEV_MOCK_DEFAULT_PCT)
   const [devMockTestType, setDevMockTestType] = useState<TestType>('50')
@@ -177,6 +182,66 @@ export default function DashboardClient() {
   function handleViewProfile(id: string) {
     setViewingProfileId(id)
     setActiveView('profile')
+    setAnalyzeError(null)
+  }
+
+  async function handleGenerateProfileAnalysis(profileId: string) {
+    if (!accessToken || analyzingProfileId) return
+
+    setAnalyzeError(null)
+    setAnalyzingProfileId(profileId)
+
+    try {
+      const res = await fetch('/api/profiles/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ profileId }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error ?? 'ไม่สามารถสร้างรายงานได้ในขณะนี้')
+      }
+
+      if (!res.body) {
+        throw new Error('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let full = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        full += chunk
+
+        setProfiles(prev => prev.map(profile => (
+          profile.id === profileId
+            ? { ...profile, ai_report: full }
+            : profile
+        )))
+      }
+
+      const normalizedReport = normalizeMarkdown(full)
+      if (!normalizedReport) {
+        throw new Error('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+      }
+
+      setProfiles(prev => prev.map(profile => (
+        profile.id === profileId
+          ? { ...profile, ai_report: normalizedReport }
+          : profile
+      )))
+    } catch (err) {
+      setAnalyzeError(err instanceof Error ? err.message : 'ไม่สามารถสร้างรายงานได้ในขณะนี้')
+    } finally {
+      setAnalyzingProfileId(null)
+    }
   }
 
   async function handleCompare() {
@@ -278,11 +343,33 @@ export default function DashboardClient() {
 
   async function handleDelete(id: string) {
     const supabase = createClient()
-    await supabase.from('ocean_profiles').delete().eq('id', id)
+    const { error } = await supabase.from('ocean_profiles').delete().eq('id', id)
+    if (error) throw new Error('ไม่สามารถลบโปรไฟล์ได้ในขณะนี้')
     setProfiles(prev => prev.filter(p => p.id !== id))
     if (selectedA === id) setSelectedA(null)
     if (selectedB === id) setSelectedB(null)
     setGroupSelectedIds(prev => prev.filter(existingId => existingId !== id))
+  }
+
+  function handleDeleteRequest(id: string) {
+    const targetProfile = profiles.find(profile => profile.id === id)
+    if (!targetProfile) return
+    setDeleteError(null)
+    setPendingDeleteProfile(targetProfile)
+  }
+
+  async function handleConfirmDelete() {
+    if (!pendingDeleteProfile) return
+    setDeleteError(null)
+    setDeletingProfileId(pendingDeleteProfile.id)
+    try {
+      await handleDelete(pendingDeleteProfile.id)
+      setPendingDeleteProfile(null)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'ไม่สามารถลบโปรไฟล์ได้ในขณะนี้')
+    } finally {
+      setDeletingProfileId(null)
+    }
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -858,7 +945,7 @@ export default function DashboardClient() {
                         onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
                         onSaveEdit={handleRename}
                         onEditChange={setEditLabel}
-                        onDelete={handleDelete}
+                        onDelete={handleDeleteRequest}
                       />
                     )}
                     {uploaded.length > 0 && (
@@ -872,7 +959,7 @@ export default function DashboardClient() {
                         onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
                         onSaveEdit={handleRename}
                         onEditChange={setEditLabel}
-                        onDelete={handleDelete}
+                        onDelete={handleDeleteRequest}
                       />
                     )}
                     {shared.length > 0 && (
@@ -886,7 +973,7 @@ export default function DashboardClient() {
                         onStartEdit={(id, label) => { setEditingId(id); setEditLabel(label) }}
                         onSaveEdit={handleRename}
                         onEditChange={setEditLabel}
-                        onDelete={handleDelete}
+                        onDelete={handleDeleteRequest}
                       />
                     )}
                   </div>
@@ -1514,6 +1601,17 @@ export default function DashboardClient() {
                           
                           <div className="flex flex-col items-stretch gap-2">
                             <button
+                              onClick={() => void handleGenerateProfileAnalysis(p.id)}
+                              disabled={Boolean(analyzingProfileId)}
+                              className="secondary-button min-h-0 px-5 py-2.5 text-xs"
+                            >
+                              {analyzingProfileId === p.id
+                                ? 'Generating analysis...'
+                                : p.ai_report
+                                  ? 'Regenerate Analysis'
+                                  : 'Generate Analysis'}
+                            </button>
+                            <button
                               onClick={() => {
                                 setSelectedA(p.id)
                                 setActiveView('compare')
@@ -1540,6 +1638,13 @@ export default function DashboardClient() {
 
                             {profileShareProfileId === p.id && profileShareError && (
                               <p className="text-[11px] font-medium text-red-600">{profileShareError}</p>
+                            )}
+
+                            {analyzingProfileId === p.id && (
+                              <p className="text-[11px] font-medium text-slate-500">AI กำลังวิเคราะห์โปรไฟล์นี้...</p>
+                            )}
+                            {analyzeError && viewingProfileId === p.id && (
+                              <p className="text-[11px] font-medium text-red-600">{analyzeError}</p>
                             )}
                           </div>
                         </div>
@@ -1632,7 +1737,7 @@ export default function DashboardClient() {
                           </div>
                           <h3 className="text-lg font-bold text-slate-800">No Deep Report Available</h3>
                           <p className="mt-2 text-sm text-slate-500 max-w-sm mx-auto">
-                            You haven&apos;t generated a deep analysis for this profile yet. Complete a 120 or 300 item test to unlock AI insights.
+                            You haven&apos;t generated analysis for this profile yet. Click &quot;Generate Analysis&quot; to create and save it.
                           </p>
                         </div>
                       )}
@@ -1646,6 +1751,38 @@ export default function DashboardClient() {
 
         </div>
       </div>
+      {pendingDeleteProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <h3 className="text-base font-semibold text-slate-800">ยืนยันการลบโปรไฟล์</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              ต้องการลบ <span className="font-medium text-slate-800">{pendingDeleteProfile.label}</span> ใช่ไหม?
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              เมื่อลบแล้วจะไม่สามารถกู้คืนจากคลังโปรไฟล์ได้
+            </p>
+            {deleteError && (
+              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{deleteError}</p>
+            )}
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => { setPendingDeleteProfile(null); setDeleteError(null) }}
+                disabled={deletingProfileId === pendingDeleteProfile.id}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-60"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={() => void handleConfirmDelete()}
+                disabled={deletingProfileId === pendingDeleteProfile.id}
+                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+              >
+                {deletingProfileId === pendingDeleteProfile.id ? 'กำลังลบ...' : 'ยืนยันลบ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
