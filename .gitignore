@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local/generated artifacts
+/build_output.txt
+/ocean-result-*.json
+/prices.csv
+/stripe.exe
+/checkoutBG.webp
+/logo_b5.png

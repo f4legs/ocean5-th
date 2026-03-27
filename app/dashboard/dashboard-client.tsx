@@ -1275,17 +1275,25 @@ export default function DashboardClient() {
                           <button
                             key={profile.id}
                             onClick={() => toggleGroupMember(profile.id)}
-                            className={`rounded-xl border px-3 py-3 text-left transition-colors ${
+                            aria-pressed={selected}
+                            className={`rounded-xl border px-3 py-3 text-left transition-all ${
                               selected
-                                ? 'border-[var(--accent)] bg-white'
+                                ? 'border-[var(--accent)] bg-[var(--accent-soft)] shadow-[0_0_0_2px_rgba(69,98,118,0.18)]'
                                 : 'border-transparent bg-white/60 hover:border-slate-200 hover:bg-white'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <p className="truncate text-xs font-semibold text-[var(--text-main)]">{primary}</p>
-                              <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${TIER_COLORS[profile.test_type]}`}>
-                                {profile.test_type}
-                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {selected && (
+                                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-white">
+                                    <IconCheck />
+                                  </span>
+                                )}
+                                <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${TIER_COLORS[profile.test_type]}`}>
+                                  {profile.test_type}
+                                </span>
+                              </div>
                             </div>
                             <p className="mt-1 text-[10px] text-slate-400">{SOURCE_LABELS[profile.source]} • {secondary}</p>
                           </button>
