@@ -1,89 +1,76 @@
-# OCEAN Personality Platform
+# OCEAN Personality Platform (Thai)
 
-Thai-language Big Five personality assessment using the IPIP-NEO framework. Three test tiers, AI-generated reports, profile comparison, friend invite links, and paid-member profile sharing links.
+Thai-language Big Five personality assessment platform using the IPIP framework.
 
----
+## What It Includes
 
-## Test Tiers
+| Tier | Items | Price | Key Output |
+| --- | --- | --- | --- |
+| Free | 50 | Free | 5 domain scores + streamed AI summary |
+| Deep | 120 | ฿49 one-time | 30 facet scores + deeper AI interpretation |
+| Research | 300 | Included after Deep unlock | Full IPIP-NEO-300-style profile |
 
-| Tier | Items | Price | Features |
-|------|-------|-------|----------|
-| Free | 50 | — | 5 domain scores · AI report ~1,500 words · No login |
-| Deep | 120 | ฿49 one-time | 30 facet scores · AI report ~2,500 words · Save profiles |
-| Research | 300 | included with ฿49 | Full IPIP-NEO-300 · Research-grade reliability |
-
-Paid users also get: profile library, AI-powered comparison between any two profiles (PDF export), and friend invite links.
-
----
+Paid member features include profile library, invite/share links, profile comparison, and PDF export.
 
 ## Tech Stack
 
-- **Framework** — Next.js 16.2.1 (App Router, React 19)
-- **Database / Auth** — Supabase (PostgreSQL + RLS + magic link / Google OAuth)
-- **AI** — Google Gemini (`gemini-2.5-flash-preview`, streaming)
-- **Payments** — Stripe Checkout (one-time, ฿49 THB)
-- **PDF** — PDFKit (server-side)
-- **Styling** — Tailwind CSS v4, Noto Sans/Serif Thai, Outfit
-
----
+- Next.js 16.2.1 (App Router) + React 19
+- Supabase (PostgreSQL, Auth, RLS)
+- Google Gemini (`@google/genai`) for report/comparison generation
+- Stripe Checkout for one-time payment unlock
+- PDFKit for server-side PDF generation
+- Tailwind CSS v4
 
 ## Project Structure
 
-```
+```text
 app/
-├── page.tsx                  # Landing page
-├── quiz/                     # Free 50-item test (localStorage)
-├── profile/                  # Optional demographic form
-├── results/                  # Free results + AI report
-├── auth/                     # Magic link / Google OAuth
-├── checkout/                 # Stripe Checkout (auth required)
-├── quiz120/                  # Paid 120-item test
-├── quiz300/                  # Paid 300-item test (extends quiz120)
-├── results120/               # 120-item results + 30 facets
-├── results300/               # 300-item results
-├── dashboard/                # Profile library + comparison (auth required)
-├── invite/[code]/            # Friend invite acceptance
-├── share/[code]/             # Paid-member profile share acceptance
-└── api/
-    ├── interpret/            # Stream AI report (50-item)
-    ├── interpret-deep/       # Stream AI report (120/300)
-    ├── compare/              # Stream AI profile comparison
-    ├── compare-pdf/          # Generate comparison PDF
-    ├── report-pdf/           # Generate results PDF
-    ├── checkout/             # Create Stripe session
-    ├── checkout/verify/      # Check payment status
-    ├── stripe-webhook/       # Handle checkout.session.completed
-    ├── profiles/upload/      # Import JSON export
-    ├── profiles/share/       # Friend submits results via invite
-    ├── profile-share/create/ # Create one-time paid-member share link
-    ├── profile-share/accept/ # Accept paid-member share link
-    └── invite/               # Create friend invite link
+  page.tsx                     Landing page
+  quiz/                        Free 50-item flow
+  quiz120/                     Paid 120-item flow
+  quiz300/                     Paid 300-item flow
+  results/                     Free results
+  results120/                  120-item results
+  results300/                  300-item results
+  dashboard/                   Saved profiles + compare
+  invite/[code]/               Friend invite acceptance
+  share/[code]/                Paid-member share acceptance
+  api/
+    interpret/                 Stream AI report for free quiz
+    interpret-deep/            Stream AI report for 120/300
+    compare/                   Stream profile comparison
+    group-compare/             Stream multi-profile/group comparison
+    report-pdf/                Result PDF generation
+    result-deep-pdf/           Deep result PDF generation
+    compare-pdf/               Comparison PDF generation
+    group-pdf/                 Group comparison PDF generation
+    checkout/                  Create Stripe checkout session
+    checkout/verify/           Verify payment state
+    stripe-webhook/            Stripe webhook handler
+    invite/                    Create friend invite links
+    profiles/share/            Submit invited friend profile
+    profiles/upload/           Import JSON profile
+    profile-share/create/      Create one-time share link
+    profile-share/accept/      Accept one-time share link
 
 lib/
-├── items.ts / items120.ts / items300.ts   # Thai IPIP question banks
-├── scoring.ts / scoring120.ts             # Domain + facet scoring
-├── ocean-constants.ts                     # Shared labels, colors, helpers
-├── stream-report.ts                       # Streaming report fetch
-├── export.ts                              # JSON export serialization
-├── report-pdf.ts / compare-pdf.ts        # PDFKit generation
-├── storage.ts / storage-keys.ts          # localStorage abstraction
-└── stripe.ts                             # Stripe client + price ID
-
-components/
-├── quiz-shell.tsx            # Unified quiz component (all 3 tests)
-├── icons.tsx                 # SVG icon components
-├── results/                  # DomainScores, FacetScores, ReportPanel, etc.
-└── ocean-trait-cloud.tsx     # Animated homepage visualization
+  scoring.ts, scoring120.ts    Domain/facet scoring logic
+  items.ts, items120.ts,
+  items300.ts                  Question banks
+  report-pdf.ts, compare-pdf.ts,
+  result-deep-pdf.ts, group-pdf.ts
+                              PDF builders
+  stream-report.ts             Streaming response parser
+  export.ts                    Profile export serializer
+  stripe.ts                    Stripe client/price resolver
 ```
-
----
 
 ## Environment Variables
 
 Create `.env.local`:
 
 ```env
-# Google Gemini
+# AI
 GEMINI_API_KEY=
 
 # Supabase
@@ -93,97 +80,72 @@ SUPABASE_SECRET_KEY=
 
 # Stripe
 STRIPE_SECRET_KEY=
-STRIPE_PRICE_DEEP=           # Price ID for the ฿49 product
+STRIPE_PRICE_DEEP=
 STRIPE_WEBHOOK_SECRET=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 
 # App
-NEXT_PUBLIC_BASE_URL=        # http://localhost:3000 in dev
-```
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
----
+# Dev tools (optional)
+DEV_EMAIL_ALLOWLIST=dev1@example.com,dev2@example.com
+NEXT_PUBLIC_DEV_EMAIL_ALLOWLIST=dev1@example.com,dev2@example.com
+```
 
 ## Local Setup
 
-**Prerequisites:** Node 18+, a Supabase project, a Stripe test account, a Google AI API key.
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-**Supabase:**
-1. Create a project at [supabase.com](https://supabase.com)
-2. Run `supabase-schema.sql` in the SQL Editor — creates all tables + RLS policies
-3. Enable Auth → Email (magic link) and Google OAuth
-4. Set redirect URL: `http://localhost:3000/auth/callback`
-5. Copy Project URL and keys to `.env.local`
+2. Supabase setup:
+- Create a Supabase project.
+- Run `supabase-schema.sql` in SQL Editor.
+- Enable Email magic link and (optional) Google OAuth.
+- Add `http://localhost:3000/auth/callback` as redirect URL.
 
-**Stripe:**
-1. Create a product priced at ฿49 THB — copy its Price ID to `STRIPE_PRICE_DEEP`
-2. For local webhook forwarding:
-   ```bash
-   stripe listen --forward-to localhost:3000/api/stripe-webhook
-   ```
-3. Copy the signing secret to `STRIPE_WEBHOOK_SECRET`
-
-**Google AI:**
-1. Get an API key from [Google AI Studio](https://aistudio.google.com)
-2. Add to `GEMINI_API_KEY`
+3. Stripe setup:
+- Create a one-time ฿49 product and set its Price ID in `STRIPE_PRICE_DEEP`.
+- For local webhook testing:
 
 ```bash
-npm run dev     # http://localhost:3000
-npm run build   # production build
+stripe listen --forward-to localhost:3000/api/stripe-webhook
 ```
 
----
+4. Run app:
 
-## Database Schema
+```bash
+npm run dev
+```
 
-| Table | Purpose |
-|-------|---------|
-| `ocean_profiles` | All test results. `source`: `test`/`upload`/`shared`. `test_type`: `50`/`120`/`300`. Stores `scores` (raw + pct + facets), `answers`, `ai_report`. |
-| `quiz_drafts` | Auto-saved quiz state every 2 seconds. Allows resuming mid-test. `test_type`: `120`/`300`. |
-| `payments` | Stripe payment records. `stripe_status`: `pending` → `paid` on webhook. |
-| `friend_invites` | 8-char invite codes with 7-day expiry. Anyone can read; owner creates. |
-| `profile_share_links` | One-time links to share `source='test'` profiles to other paid members. |
-| `comparisons` | Cached AI comparison reports between two profiles. |
+## NPM Scripts
 
-All tables use Row Level Security — users can only access their own rows, except `friend_invites` and `profile_share_links` (public read for link validation).
+- `npm run dev` - start local dev server
+- `npm run build` - production build
+- `npm run start` - run built app
+- `npm run lint` - lint source
+- `npm run test` - Vitest interactive run
+- `npm run test:run` - single-run tests
+- `npm run test:watch` - watch mode tests
 
----
+## Core Data Tables (Supabase)
 
-## Key Flows
+- `user_profiles` - display name metadata for auth users
+- `ocean_profiles` - all result profiles (`source`: `test`/`upload`/`shared`)
+- `comparisons` - cached profile comparison reports
+- `friend_invites` - invite links for friend submissions
+- `profile_share_links` - one-time paid-member share links
+- `payments` - Stripe session/payment state
+- `quiz_drafts` - resumable paid quiz progress
 
-**Free quiz (no login):**
-`/quiz` → answers saved to localStorage → `/results` → AI streams from `/api/interpret`
+All major tables are protected by Row Level Security policies.
 
-**Paid quiz:**
-`/auth` → `/checkout` (Stripe) → webhook marks `payments.stripe_status = 'paid'` → `/quiz120` → `/results120` → profile saved to Supabase
+## Operational Notes
 
-**Friend invite:**
-Dashboard → `POST /api/invite` → share link → friend visits `/invite/[code]` → friend takes test → `POST /api/profiles/share` → owner sees friend's profile in dashboard
-
-**Paid-member profile share (own test only):**
-Dashboard → `POST /api/profile-share/create` (with `profileId` from `source='test'`) → recipient opens `/share/[code]` → `POST /api/profile-share/accept` → profile auto-added to recipient dashboard
-
-**Profile comparison:**
-Dashboard → select two profiles → `POST /api/compare` (streaming) → AI report → optional PDF via `POST /api/compare-pdf`
-
----
-
-## Notes
-
-- The free 50-item test requires no server — all scoring runs client-side
-- Quiz drafts auto-save every 2 seconds for paid tests; completing the test deletes the draft
-- AI streaming uses `ReadableStream` with `TextDecoder`; max duration 300s (requires Vercel Pro or equivalent)
-- Rate limiting on AI routes is in-memory per IP (best-effort on serverless)
-- Search engine indexing is disabled (`noindex, nofollow` headers in `next.config.ts`)
-- All brand colors use CSS variables or inline `style={{}}` — never Tailwind color utilities
-
----
-
-## References
-
-- IPIP-NEO-120 — Johnson (2014) — [ipip.ori.org](https://ipip.ori.org)
-- IPIP-NEO-300 — Goldberg et al. (2006) — [ipip.ori.org](https://ipip.ori.org)
-- Thai translation — Panida Yomaboot & Andrew J. Cooper
+- Free quiz scoring is client-side; AI interpretation streams from server routes.
+- Paid quiz drafts autosave and can be resumed.
+- AI endpoints use in-memory IP rate limiting (best effort on serverless).
+- Indexing is intentionally disabled (`robots.ts` + `X-Robots-Tag` headers).
+- This project targets Thai language UX/content first.

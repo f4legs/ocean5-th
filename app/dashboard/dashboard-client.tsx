@@ -10,15 +10,19 @@ import { FACET_NAMES } from '@/lib/scoring120'
 import { FACTOR_ORDER, type Factor } from '@/lib/ocean-constants'
 import { computeGroupDynamics } from '@/lib/group-dynamics'
 import { normalizeMarkdown } from '@/lib/markdown'
+import { isPublicDevEmail } from '@/lib/dev-access'
 import {
   IconClose, IconHome, IconBarChart, IconUsers, IconUpload, IconMail,
   IconFileEdit, IconBot, IconBug, IconLogOut, IconPencil, IconTrash,
   IconCardSelf, IconCardTeam, IconCardTrend, IconCardShield,
-  IconCopy, IconCheck, IconUsersLg,
+  IconCopy, IconCheck, IconUsersLg, IconDownload,
 } from '@/components/icons'
 
 type Source = 'test' | 'upload' | 'shared'
 type TestType = '50' | '120' | '300'
+type DashboardView = 'default' | 'compare' | 'group-compare' | 'profile' | 'dev-mock-json'
+
+type MockOceanPct = Record<Factor, number>
 
 interface OceanProfile {
   id: string
@@ -55,11 +59,14 @@ const TIER_COLORS: Record<TestType, string> = {
 }
 const MIN_GROUP_MEMBERS = 3
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024
+const DEV_MOCK_DEFAULT_PCT: MockOceanPct = { O: 50, C: 50, E: 50, A: 50, N: 50 }
 
 export default function DashboardClient() {
   const [profiles, setProfiles] = useState<OceanProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [isDevUser, setIsDevUser] = useState(false)
   const [accessToken, setAccessToken] = useState<string | null>(null)
 
   // Selection state
@@ -76,7 +83,7 @@ export default function DashboardClient() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editLabel, setEditLabel] = useState('')
 
-  const [activeView, setActiveView] = useState<'default' | 'compare' | 'group-compare' | 'profile'>('default')
+  const [activeView, setActiveView] = useState<DashboardView>('default')
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null)
   const [groupSelectedIds, setGroupSelectedIds] = useState<string[]>([])
   const [groupReportMethod, setGroupReportMethod] = useState('teamwork')
@@ -93,6 +100,12 @@ export default function DashboardClient() {
   const [profileShareLoading, setProfileShareLoading] = useState(false)
   const [profileShareError, setProfileShareError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [devMockPct, setDevMockPct] = useState<MockOceanPct>(DEV_MOCK_DEFAULT_PCT)
+  const [devMockTestType, setDevMockTestType] = useState<TestType>('50')
+  const [devMockBusy, setDevMockBusy] = useState(false)
+  const [devMockError, setDevMockError] = useState<string | null>(null)
+  const [devMockJsonPreview, setDevMockJsonPreview] = useState('')
+  const [devMockCopied, setDevMockCopied] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -102,6 +115,8 @@ export default function DashboardClient() {
       if (!session) return
 
       setUserId(session.user.id)
+      setUserEmail(session.user.email ?? null)
+      setIsDevUser(isPublicDevEmail(session.user.email ?? null))
       setAccessToken(session.access_token)
 
       // Check payment
@@ -508,6 +523,109 @@ export default function DashboardClient() {
     }
   }
 
+  function handleDevMockSliderChange(factor: Factor, value: number) {
+    setDevMockPct(prev => ({ ...prev, [factor]: value }))
+  }
+
+  function randomizeDevMockPct() {
+    const randomized = FACTOR_ORDER.reduce((acc, factor) => {
+      acc[factor] = Math.floor(Math.random() * 101)
+      return acc
+    }, {} as MockOceanPct)
+    setDevMockPct(randomized)
+  }
+
+  async function requestDevMock(action: 'generate' | 'import') {
+    if (!accessToken) {
+      throw new Error('กรุณาเข้าสู่ระบบใหม่ แล้วลองอีกครั้ง')
+    }
+
+    const res = await fetch('/api/dev/mock-ocean', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        action,
+        testType: devMockTestType,
+        pct: devMockPct,
+      }),
+    })
+
+    const body = await res.json().catch(() => ({})) as {
+      error?: string
+      exportData?: unknown
+      profile?: OceanProfile
+    }
+
+    if (!res.ok) {
+      throw new Error(body.error ?? 'ไม่สามารถสร้าง mock JSON ได้ในขณะนี้')
+    }
+
+    if (!body.exportData) {
+      throw new Error('ไม่พบข้อมูล mock JSON จากเซิร์ฟเวอร์')
+    }
+
+    const exportDataText = JSON.stringify(body.exportData, null, 2)
+    setDevMockJsonPreview(exportDataText)
+    return { exportData: body.exportData, profile: body.profile ?? null }
+  }
+
+  function downloadDevMockJson(exportData: unknown) {
+    const ts = new Date().toISOString().replace(/[:.]/g, '-')
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ocean-mock-${devMockTestType}-${ts}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleDevMockDownload() {
+    setDevMockBusy(true)
+    setDevMockError(null)
+    try {
+      const { exportData } = await requestDevMock('generate')
+      downloadDevMockJson(exportData)
+    } catch (err) {
+      setDevMockError(err instanceof Error ? err.message : 'ไม่สามารถดาวน์โหลด mock JSON ได้')
+    } finally {
+      setDevMockBusy(false)
+    }
+  }
+
+  async function handleDevMockGenerateImport() {
+    setDevMockBusy(true)
+    setDevMockError(null)
+    try {
+      const { profile } = await requestDevMock('import')
+      if (profile) {
+        const normalizedProfile = profile as OceanProfile
+        setProfiles(prev => [{
+          ...normalizedProfile,
+          ai_report: normalizedProfile.ai_report ? normalizeMarkdown(normalizedProfile.ai_report) : undefined,
+        }, ...prev])
+      }
+    } catch (err) {
+      setDevMockError(err instanceof Error ? err.message : 'ไม่สามารถสร้างและนำเข้า mock JSON ได้')
+    } finally {
+      setDevMockBusy(false)
+    }
+  }
+
+  async function handleCopyDevMockJson() {
+    if (!devMockJsonPreview) return
+    try {
+      await navigator.clipboard.writeText(devMockJsonPreview)
+      setDevMockCopied(true)
+      setTimeout(() => setDevMockCopied(false), 1800)
+    } catch {
+      window.prompt('คัดลอก JSON นี้', devMockJsonPreview)
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   const myTests = profiles.filter(p => p.source === 'test')
@@ -675,6 +793,16 @@ export default function DashboardClient() {
                   <IconFileEdit />
                   <span>ทดสอบ 120/300 ข้อ</span>
                 </Link>
+
+                {isDevUser && (
+                  <button
+                    onClick={() => { setActiveView('dev-mock-json'); setViewingProfileId(null) }}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors text-sm ${activeView === 'dev-mock-json' ? navActive : navIdle}`}
+                  >
+                    <IconBug />
+                    <span>Dev: Mock JSON</span>
+                  </button>
+                )}
 
                 <button
                   disabled
@@ -1236,6 +1364,123 @@ export default function DashboardClient() {
                       </div>
                     </>
                   )}
+                </div>
+              </div>
+            )}
+
+            {activeView === 'dev-mock-json' && isDevUser && (
+              <div className="space-y-5">
+                <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none sm:px-8 sm:py-10">
+                  <span className="eyebrow">
+                    <span className="accent-dot" aria-hidden="true" />
+                    developer tools
+                  </span>
+                  <h2 className="display-title mt-5 text-3xl">Mock OCEAN JSON Generator</h2>
+                  <p className="mt-2 text-slate-500 text-sm">
+                    สร้างไฟล์ mock export สำหรับทดสอบระบบนำเข้า โดยกำหนดค่า O/C/E/A/N ได้เอง
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Signed in as {userEmail ?? 'unknown user'}
+                  </p>
+                </div>
+
+                <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-7 shadow-none sm:px-8 sm:py-8">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="text-sm font-bold text-slate-800">Input Controls</h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={randomizeDevMockPct}
+                        disabled={devMockBusy}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-white disabled:opacity-50"
+                      >
+                        Randomize
+                      </button>
+                      <button
+                        onClick={() => setDevMockPct(DEV_MOCK_DEFAULT_PCT)}
+                        disabled={devMockBusy}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-white disabled:opacity-50"
+                      >
+                        Reset 50
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-4">
+                    {FACTOR_ORDER.map((factor) => (
+                      <div key={factor} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-700">{factor} • {DIMENSION_INFO[factor].label}</span>
+                          <span className="text-xs font-bold text-slate-900 tabular-nums">{devMockPct[factor]}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={devMockPct[factor]}
+                          onChange={(e) => handleDevMockSliderChange(factor, Number(e.target.value))}
+                          disabled={devMockBusy}
+                          className="w-full accent-[var(--accent)]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                    <label className="text-xs font-semibold text-slate-600">Test Type</label>
+                    <select
+                      value={devMockTestType}
+                      onChange={(e) => setDevMockTestType(e.target.value as TestType)}
+                      disabled={devMockBusy}
+                      className="rounded-lg border border-[var(--line-strong)] bg-white px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none"
+                    >
+                      <option value="50">50 Items</option>
+                      <option value="120">120 Items</option>
+                      <option value="300">300 Items</option>
+                    </select>
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap gap-2.5">
+                    <button
+                      onClick={handleDevMockGenerateImport}
+                      disabled={devMockBusy}
+                      className="primary-button"
+                    >
+                      {devMockBusy ? 'Working…' : 'Generate & Import'}
+                    </button>
+                    <button
+                      onClick={handleDevMockDownload}
+                      disabled={devMockBusy}
+                      className="secondary-button"
+                    >
+                      <IconDownload />
+                      <span>Download JSON</span>
+                    </button>
+                    <button
+                      onClick={handleCopyDevMockJson}
+                      disabled={!devMockJsonPreview || devMockBusy}
+                      className="secondary-button"
+                    >
+                      {devMockCopied ? <IconCheck /> : <IconCopy />}
+                      <span>{devMockCopied ? 'Copied' : 'Copy JSON'}</span>
+                    </button>
+                  </div>
+
+                  {devMockError && (
+                    <p className="mt-4 text-xs font-medium text-red-600">{devMockError}</p>
+                  )}
+                </div>
+
+                <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-7 shadow-none sm:px-8 sm:py-8">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-bold text-slate-800">JSON Preview</h3>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      {devMockJsonPreview ? `${devMockJsonPreview.length.toLocaleString()} chars` : 'No JSON yet'}
+                    </span>
+                  </div>
+                  <pre className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-100 bg-slate-950/95 p-4 text-[11px] leading-relaxed text-slate-100">
+                    {devMockJsonPreview || '{\n  "hint": "Use Generate & Import or Download JSON"\n}'}
+                  </pre>
                 </div>
               </div>
             )}
