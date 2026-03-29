@@ -72,6 +72,9 @@ export default function QuizShell({ config }: Props) {
 
   const [page, setPage] = useState(1)
   const [answers, setAnswers] = useState<Record<number, number>>({})
+  const [isCompleting, setIsCompleting] = useState(false)
+  const [completionError, setCompletionError] = useState<string | null>(null)
+  const completingRef = useRef(false)
   const itemShownAt = useRef<Record<number, number>>({})
   const pageEnteredAt = useRef<number>(Date.now())
   const pageDurations = useRef<Record<number, number>>({})
@@ -151,7 +154,7 @@ export default function QuizShell({ config }: Props) {
   }
 
   async function handleNext() {
-    if (!allAnswered) return
+    if (!allAnswered || completingRef.current) return
     pageDurations.current[page] = Date.now() - pageEnteredAt.current
 
     if (page < totalPages) {
@@ -159,11 +162,22 @@ export default function QuizShell({ config }: Props) {
       onPageChange(nextPage, answers, responseTimes.current, pageDurations.current)
       setPage(nextPage)
     } else {
-      await onComplete({
-        answers,
-        responseTimes: responseTimes.current,
-        pageDurations: pageDurations.current,
-      })
+      setCompletionError(null)
+      completingRef.current = true
+      setIsCompleting(true)
+
+      try {
+        await onComplete({
+          answers,
+          responseTimes: responseTimes.current,
+          pageDurations: pageDurations.current,
+        })
+      } catch (error) {
+        console.error('Quiz completion failed:', error)
+        completingRef.current = false
+        setCompletionError('ไม่สามารถบันทึกผลลัพธ์ได้ในขณะนี้ กรุณาลองอีกครั้ง')
+        setIsCompleting(false)
+      }
     }
   }
 
@@ -392,7 +406,7 @@ export default function QuizShell({ config }: Props) {
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <button
                     onClick={handleBack}
-                    disabled={page === 1}
+                    disabled={page === 1 || isCompleting}
                     className="secondary-button px-6"
                   >
                     <span aria-hidden="true">←</span>
@@ -400,14 +414,19 @@ export default function QuizShell({ config }: Props) {
                   </button>
                   <button
                     onClick={handleNext}
-                    disabled={!allAnswered}
+                    disabled={!allAnswered || isCompleting}
                     className="primary-button px-7"
                   >
-                    {page < totalPages ? 'ถัดไป' : 'ดูผลลัพธ์'}
+                    {page < totalPages ? 'ถัดไป' : isCompleting ? 'กำลังบันทึกผลลัพธ์...' : 'ดูผลลัพธ์'}
                     <span aria-hidden="true">→</span>
                   </button>
                 </div>
               </div>
+              {completionError && (
+                <p className="mt-3 text-sm text-red-600" role="alert">
+                  {completionError}
+                </p>
+              )}
             </div>
           </section>
         </div>

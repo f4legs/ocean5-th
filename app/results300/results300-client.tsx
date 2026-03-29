@@ -46,6 +46,7 @@ export default function Results300Client() {
   const [exportingPDF, setExportingPDF] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [retakeConfirm, setRetakeConfirm] = useState(false)
+  const autoDedupeKeyRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     async function init() {
@@ -106,14 +107,20 @@ export default function Results300Client() {
       if (storedCode) { setInviteCode(storedCode); setInviteOwner(storedOwner) }
 
       if (!hasStoredReport) {
-        triggerStreamReport(resolvedScores, token, resolvedProfileId)
+        autoDedupeKeyRef.current = resolvedProfileId ? `results300:auto-report:${resolvedProfileId}` : undefined
+        triggerStreamReport(resolvedScores, token, resolvedProfileId, autoDedupeKeyRef.current)
       }
     }
     void init()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function triggerStreamReport(result: FullScoreResult, token: string | null, pid: string | null = null) {
+  function triggerStreamReport(
+    result: FullScoreResult,
+    token: string | null,
+    pid: string | null = null,
+    dedupeKey?: string,
+  ) {
     startStreamReport({
       url: '/api/interpret-deep',
       body: {
@@ -123,6 +130,7 @@ export default function Results300Client() {
         profileId: pid ?? undefined,
         profile: profileData ?? undefined,
       },
+      dedupeKey,
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       activeRequestId,
       setReport,

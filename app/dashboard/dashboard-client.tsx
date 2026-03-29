@@ -97,9 +97,12 @@ export default function DashboardClient() {
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
   const [profileShareProfileId, setProfileShareProfileId] = useState<string | null>(null)
+  const [profileShareLinkProfileId, setProfileShareLinkProfileId] = useState<string | null>(null)
+  const [profileShareLink, setProfileShareLink] = useState<string | null>(null)
   const [profileShareCopiedProfileId, setProfileShareCopiedProfileId] = useState<string | null>(null)
   const [profileShareLoading, setProfileShareLoading] = useState(false)
   const [profileShareError, setProfileShareError] = useState<string | null>(null)
+  const [profileShareNotice, setProfileShareNotice] = useState<string | null>(null)
   const [pendingDeleteProfile, setPendingDeleteProfile] = useState<OceanProfile | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingProfileId, setDeletingProfileId] = useState<string | null>(null)
@@ -458,6 +461,9 @@ export default function DashboardClient() {
 
     setProfileShareLoading(true)
     setProfileShareError(null)
+    setProfileShareNotice(null)
+    setProfileShareLink(null)
+    setProfileShareLinkProfileId(null)
     setProfileShareProfileId(profileId)
     setProfileShareCopiedProfileId(null)
 
@@ -478,17 +484,38 @@ export default function DashboardClient() {
         throw new Error('ไม่สามารถสร้างลิงก์แชร์ได้ในขณะนี้')
       }
 
+      setProfileShareLink(data.url)
+      setProfileShareLinkProfileId(profileId)
+
       try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable')
         await navigator.clipboard.writeText(data.url)
         setProfileShareCopiedProfileId(profileId)
+        setProfileShareNotice('คัดลอกลิงก์แล้ว ส่งต่อให้เพื่อนได้ทันที')
         setTimeout(() => setProfileShareCopiedProfileId(current => current === profileId ? null : current), 2200)
       } catch {
-        window.prompt('คัดลอกลิงก์นี้', data.url)
+        setProfileShareNotice('สร้างลิงก์แล้ว แต่เบราว์เซอร์ยังไม่คัดลอกให้ แตะปุ่มคัดลอกหรือคัดลอกเองจากช่องด้านล่างได้')
       }
     } catch (err) {
+      setProfileShareLink(null)
+      setProfileShareLinkProfileId(null)
+      setProfileShareNotice(null)
       setProfileShareError(err instanceof Error ? err.message : 'ไม่สามารถสร้างลิงก์แชร์ได้ในขณะนี้')
     } finally {
       setProfileShareLoading(false)
+    }
+  }
+
+  async function handleCopyProfileShareLink(url: string, profileId: string) {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable')
+      await navigator.clipboard.writeText(url)
+      setProfileShareCopiedProfileId(profileId)
+      setProfileShareNotice('คัดลอกลิงก์แล้ว ส่งต่อให้เพื่อนได้ทันที')
+      setTimeout(() => setProfileShareCopiedProfileId(current => current === profileId ? null : current), 2200)
+    } catch {
+      setProfileShareCopiedProfileId(null)
+      setProfileShareNotice('คัดลอกอัตโนมัติไม่สำเร็จ คัดลอกจากช่องลิงก์ด้านล่างได้เลย')
     }
   }
 
@@ -1638,11 +1665,63 @@ export default function DashboardClient() {
                                 disabled={profileShareLoading}
                                 className="secondary-button min-h-0 px-5 py-2.5 text-xs"
                               >
-                                {profileShareCopiedProfileId === p.id ? <IconCheck /> : null}
+                                {profileShareCopiedProfileId === p.id || profileShareLinkProfileId === p.id ? <IconCheck /> : null}
                                 {profileShareLoading && profileShareProfileId === p.id
                                   ? 'Generating...'
-                                  : 'Share to other member'}
+                                  : profileShareCopiedProfileId === p.id
+                                    ? 'คัดลอกลิงก์แล้ว'
+                                    : profileShareLinkProfileId === p.id
+                                      ? 'ลิงก์พร้อมแชร์'
+                                      : 'Share to other member'}
                               </button>
+                            )}
+
+                            {profileShareLinkProfileId === p.id && profileShareLink && (
+                              <div className={`rounded-xl border px-3 py-3 ${
+                                profileShareCopiedProfileId === p.id
+                                  ? 'border-green-100 bg-green-50'
+                                  : 'border-amber-100 bg-amber-50'
+                              }`}>
+                                <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${
+                                  profileShareCopiedProfileId === p.id ? 'text-green-700' : 'text-amber-700'
+                                }`}>
+                                  {profileShareCopiedProfileId === p.id ? 'คัดลอกลิงก์แล้ว' : 'สร้างลิงก์แล้ว'}
+                                </p>
+                                {profileShareNotice && (
+                                  <p className={`mt-1 text-[11px] leading-relaxed ${
+                                    profileShareCopiedProfileId === p.id ? 'text-green-700' : 'text-amber-700'
+                                  }`}>
+                                    {profileShareNotice}
+                                  </p>
+                                )}
+                                <div className="mt-2 flex items-center gap-2">
+                                  <input
+                                    readOnly
+                                    value={profileShareLink}
+                                    onFocus={event => event.currentTarget.select()}
+                                    className="min-w-0 flex-1 rounded-lg border border-white/80 bg-white px-2.5 py-2 text-[11px] text-slate-700 focus:outline-none"
+                                  />
+                                  <button
+                                    onClick={() => void handleCopyProfileShareLink(profileShareLink, p.id)}
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                                      profileShareCopiedProfileId === p.id
+                                        ? 'bg-green-100 text-green-600'
+                                        : 'bg-slate-800 text-white hover:bg-slate-900'
+                                    }`}
+                                    title="คัดลอกลิงก์แชร์"
+                                  >
+                                    {profileShareCopiedProfileId === p.id ? <IconCheck /> : <IconCopy />}
+                                  </button>
+                                </div>
+                                <a
+                                  href={profileShareLink}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-2 inline-flex text-[11px] font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900"
+                                >
+                                  เปิดลิงก์แชร์
+                                </a>
+                              </div>
                             )}
 
                             {profileShareProfileId === p.id && profileShareError && (

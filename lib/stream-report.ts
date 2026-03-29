@@ -10,6 +10,7 @@ export interface StreamReportOptions {
   url: string
   body: Record<string, unknown>
   headers?: Record<string, string>
+  dedupeKey?: string
   activeRequestId: MutableRefObject<number>
   setReport: Dispatch<SetStateAction<string>>
   setLoading: Dispatch<SetStateAction<boolean>>
@@ -19,11 +20,23 @@ export interface StreamReportOptions {
   onSuccess?: (normalizedReport: string) => void
 }
 
+type StreamReportWindow = Window & {
+  __oceanInflightReportPromises__?: Map<string, Promise<string>>
+}
+
+function getInflightReportPromises(): Map<string, Promise<string>> {
+  const oceanWindow = window as StreamReportWindow
+  if (!oceanWindow.__oceanInflightReportPromises__) {
+    oceanWindow.__oceanInflightReportPromises__ = new Map()
+  }
+  return oceanWindow.__oceanInflightReportPromises__
+}
+
 // Starts a streaming report fetch. Uses requestId for cancellation safety.
 // Returns a cleanup function (call to cancel).
 export function startStreamReport(opts: StreamReportOptions): () => void {
   const {
-    url, body, headers = {}, activeRequestId,
+    url, body, headers = {}, dedupeKey, activeRequestId,
     setReport, setLoading, setError, setFakeProgress, setLoadingSeconds,
     onSuccess,
   } = opts
@@ -50,57 +63,87 @@ export function startStreamReport(opts: StreamReportOptions): () => void {
     })
   }, 1800)
 
-  async function run() {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify(body),
+  function settleFromPromise(promise: Promise<string>) {
+    void promise
+      .then(normalized => {
+        if (requestId !== activeRequestId.current) return
+        setReport(normalized)
+        onSuccess?.(normalized)
       })
+      .catch(err => {
+        if (requestId !== activeRequestId.current) return
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ')
+      })
+      .finally(() => {
+        window.clearInterval(interval)
+        if (requestId === activeRequestId.current) {
+          setLoading(false)
+        }
+      })
+  }
 
-      if (!res.ok) {
-        const data = await res.json() as { error?: string }
-        throw new Error(data.error || 'ไม่สามารถสร้างรายงานได้ในขณะนี้')
-      }
+  const inflightPromises = dedupeKey ? getInflightReportPromises() : null
+  const existingPromise = dedupeKey ? inflightPromises?.get(dedupeKey) : undefined
 
-      if (!res.body) throw new Error('ไม่สามารถสร้างรายงานได้ในขณะนี้')
-
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let accumulated = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (requestId !== activeRequestId.current) { void reader.cancel(); return }
-        if (done) break
-        accumulated += decoder.decode(value, { stream: true })
-        setReport(accumulated)
-      }
-
-      if (requestId !== activeRequestId.current) return
-
-      const normalized = normalizeMarkdown(accumulated)
-      setReport(normalized)
-
-      if (!normalized) {
-        setError('ไม่สามารถสร้างรายงานได้ในขณะนี้')
-        return
-      }
-
-      onSuccess?.(normalized)
-
-    } catch (err) {
-      if (requestId !== activeRequestId.current) return
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ')
-    } finally {
+  if (existingPromise) {
+    settleFromPromise(existingPromise)
+    return () => {
       window.clearInterval(interval)
-      if (requestId === activeRequestId.current) {
-        setLoading(false)
-      }
     }
   }
 
-  void run()
+  const runPromise = (async () => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+      const data = await res.json() as { error?: string }
+      throw new Error(data.error || 'ไม่สามารถสร้างรายงานได้ในขณะนี้')
+    }
+
+    if (!res.body) throw new Error('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let accumulated = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (requestId !== activeRequestId.current) {
+        void reader.cancel()
+        throw new DOMException('Request superseded', 'AbortError')
+      }
+      if (done) break
+      accumulated += decoder.decode(value, { stream: true })
+      setReport(accumulated)
+    }
+
+    if (requestId !== activeRequestId.current) {
+      throw new DOMException('Request superseded', 'AbortError')
+    }
+
+    const normalized = normalizeMarkdown(accumulated)
+    if (!normalized) {
+      throw new Error('ไม่สามารถสร้างรายงานได้ในขณะนี้')
+    }
+
+    return normalized
+  })()
+
+  if (dedupeKey && inflightPromises) {
+    inflightPromises.set(dedupeKey, runPromise)
+    void runPromise.finally(() => {
+      if (inflightPromises.get(dedupeKey) === runPromise) {
+        inflightPromises.delete(dedupeKey)
+      }
+    })
+  }
+
+  settleFromPromise(runPromise)
 
   return () => {
     window.clearInterval(interval)
