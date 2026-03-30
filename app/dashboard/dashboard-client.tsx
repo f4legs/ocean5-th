@@ -1229,7 +1229,7 @@ export default function DashboardClient() {
                 ) : (
                   <div>
                     <hr className="fold-divider mb-5" />
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-3">
                       {profiles.map(p => {
                         const dominantFactor = FACTOR_ORDER.reduce((best, f) => p.scores.pct[f] > p.scores.pct[best] ? f : best, FACTOR_ORDER[0])
                         const sourceLabel = SOURCE_LABELS[p.source]
