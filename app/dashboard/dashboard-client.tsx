@@ -21,9 +21,9 @@ import FacetAnalysisGrid from '@/components/results/facet-analysis-grid'
 import {
   IconClose, IconHome, IconBarChart, IconUsers, IconUpload, IconMail,
   IconFileEdit, IconBot, IconBug, IconLogOut, IconPencil, IconTrash,
-  IconCardSelf, IconCardTeam, IconCardTrend, IconCardShield,
   IconCopy, IconCheck, IconUsersLg, IconDownload, IconChevronRight,
 } from '@/components/icons'
+import DashboardAboutContent from '@/components/dashboard/dashboard-about-content'
 
 type Source = 'test' | 'upload' | 'shared'
 type TestType = '50' | '120' | '300'
@@ -478,6 +478,21 @@ export default function DashboardClient() {
     } finally {
       setInviteLoading(false)
     }
+  }
+
+  function handleOpenUploadPicker() {
+    fileInputRef.current?.click()
+  }
+
+  async function handleSharePortal() {
+    if (inviteLink) {
+      await navigator.clipboard.writeText(inviteLink)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+      return
+    }
+
+    await handleInvite()
   }
 
   async function handleCreateProfileShareLink(profileId: string) {
@@ -1102,7 +1117,7 @@ export default function DashboardClient() {
           {/* ── Right Panel ──────────────────────────────────────── */}
           <div className="space-y-5 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:py-3 lg:pr-3 scrollbar-hidden">
             {activeView === 'default' && (
-              <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none sm:px-8 sm:py-10">
+              <div className="hidden lg:block glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none sm:px-8 sm:py-10">
                 <div className="flex items-baseline justify-between gap-4">
                   <h2 className="display-title text-3xl sm:text-4xl">OCEAN Dashboard</h2>
                   {profiles.length > 0 && (
@@ -1110,59 +1125,91 @@ export default function DashboardClient() {
                   )}
                 </div>
                 <p className="mt-2 text-sm text-[var(--text-soft)]">เครื่องมือวิเคราะห์บุคลิกภาพระดับสากล เพื่อความเข้าใจตนเองและทีมงาน</p>
+                <DashboardAboutContent />
+              </div>
+            )}
 
-                <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                  <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-blue-500" style={{ background: 'rgba(59,130,246,0.08)' }}>
-                      <IconCardSelf />
-                    </div>
-                    <h3 className="text-sm font-semibold text-slate-800">การเข้าใจตนเอง</h3>
-                    <p className="text-[13px] leading-relaxed text-slate-500">
-                      OCEAN ช่วยให้คุณเข้าใจแนวโน้มตามธรรมชาติของตัวเองใน 5 มิติสำคัญ ได้แก่ การเปิดรับประสบการณ์ (Openness), ความมีวินัยรับผิดชอบ (Conscientiousness), การแสดงตัว (Extraversion), ความเป็นมิตรเห็นอกเห็นใจ (Agreeableness), และความไม่มั่นคงทางอารมณ์ (Neuroticism)
-                    </p>
-                  </section>
-
-                  <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-violet-500" style={{ background: 'rgba(139,92,246,0.08)' }}>
-                      <IconCardTeam />
-                    </div>
-                    <h3 className="text-sm font-semibold text-slate-800">พลวัตของทีม</h3>
-                    <p className="text-[13px] leading-relaxed text-slate-500">
-                      เปรียบเทียบโปรไฟล์ของคุณกับผู้อื่นเพื่อทำความเข้าใจศักยภาพในการทำงานร่วมกันและจุดที่อาจเกิดความขัดแย้ง ทั้งในบริบทการทำงานหรือชีวิตส่วนตัว
-                    </p>
-                  </section>
-
-                  <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-500" style={{ background: 'rgba(16,185,129,0.08)' }}>
-                      <IconCardTrend />
-                    </div>
-                    <h3 className="text-sm font-semibold text-slate-800">การเติบโตส่วนบุคคล</h3>
-                    <p className="text-[13px] leading-relaxed text-slate-500">
-                      ใช้แบบทดสอบ 120 และ 300 ข้อเพื่อความแม่นยำระดับงานวิจัย พร้อมรายงานเชิงลึกที่ขับเคลื่อนด้วย AI ซึ่งแนะนำจุดที่ควรพัฒนา
-                    </p>
-                  </section>
-
-                  <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-amber-500" style={{ background: 'rgba(245,158,11,0.08)' }}>
-                      <IconCardShield />
-                    </div>
-                    <h3 className="text-sm font-semibold text-slate-800">ทำไมต้องใช้ OCEAN?</h3>
-                    <p className="text-[13px] leading-relaxed text-slate-500">
-                      นี่คือกรอบแนวคิดด้านจิตวิทยาบุคลิกภาพที่ได้รับการยืนยันทางวิทยาศาสตร์มากที่สุด โดยให้ภาษากลางสำหรับอธิบายพฤติกรรมมนุษย์
-                    </p>
-                  </section>
+            {activeView === 'default' && (
+              <div className="lg:hidden glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none">
+                <div className="flex items-baseline justify-between gap-4">
+                  <h2 className="display-title text-3xl">OCEAN Dashboard</h2>
+                  {profiles.length > 0 && (
+                    <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--text-faint)]">{profiles.length} โปรไฟล์</span>
+                  )}
                 </div>
+                <p className="mt-2 text-sm text-[var(--text-soft)]">เริ่มต้นจากทางลัดด้านล่าง แล้วค่อยกลับมาจัดการคลังโปรไฟล์ของคุณ</p>
 
-                <div className="mt-6 flex items-start gap-4 rounded-2xl bg-white p-5">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-[var(--accent)]" style={{ background: 'rgba(95,116,130,0.08)' }}>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.4"/><path d="M8 7v4M8 5.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-semibold text-slate-800 mb-1">เริ่มต้นใช้งาน</h4>
-                    <p className="text-[13px] text-slate-500 leading-relaxed">
-                      เลือกแท็บ <strong className="text-slate-700 font-semibold">เปรียบเทียบ</strong> แล้วเลือก 2 โปรไฟล์เพื่อเริ่มต้น ยังไม่มีโปรไฟล์ใช่ไหม? กด <strong className="text-slate-700 font-semibold">เชิญ</strong> เพื่อชวนเพื่อนเข้ามาได้เลย
+                <div className="mt-6 space-y-3">
+                  <section className="rounded-[1.75rem] bg-white p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div
+                        className="flex h-10 w-10 items-center justify-center rounded-2xl text-[var(--accent-strong)]"
+                        style={{ background: 'rgba(23,49,61,0.08)' }}
+                      >
+                        <IconFileEdit />
+                      </div>
+                      <Link
+                        href="/dashboard/about"
+                        className="text-[11px] font-semibold text-[var(--accent-strong)] underline underline-offset-4"
+                      >
+                        ดูคำอธิบาย
+                      </Link>
+                    </div>
+                    <h3 className="mt-4 text-base font-semibold text-slate-800">Take Test</h3>
+                    <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
+                      เริ่มทำแบบทดสอบฟรี หรือไปยังเวอร์ชันเชิงลึกสำหรับสมาชิกได้จากตรงนี้
                     </p>
-                  </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link href="/quiz" className="rounded-full bg-[var(--accent-strong)] px-4 py-2 text-xs font-semibold text-white">
+                        50 ฟรี
+                      </Link>
+                      <Link href="/quiz120" className="rounded-full border border-[var(--line-strong)] bg-white px-4 py-2 text-xs font-semibold text-[var(--text-main)]">
+                        120 ข้อ
+                      </Link>
+                      <Link href="/quiz300" className="rounded-full border border-[var(--line-strong)] bg-white px-4 py-2 text-xs font-semibold text-[var(--text-main)]">
+                        300 ข้อ
+                      </Link>
+                    </div>
+                  </section>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenUploadPicker}
+                    className="w-full rounded-[1.75rem] bg-white p-5 text-left transition-all hover:shadow-sm"
+                  >
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-2xl text-emerald-600"
+                      style={{ background: 'rgba(16,185,129,0.08)' }}
+                    >
+                      <IconUpload />
+                    </div>
+                    <h3 className="mt-4 text-base font-semibold text-slate-800">Upload</h3>
+                    <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
+                      อัปโหลดผลลัพธ์ JSON หรือ PDF ที่มีอยู่แล้วเข้าคลังโปรไฟล์ได้ทันที
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { void handleSharePortal() }}
+                    className="w-full rounded-[1.75rem] bg-white p-5 text-left transition-all hover:shadow-sm"
+                  >
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-2xl text-violet-500"
+                      style={{ background: 'rgba(139,92,246,0.08)' }}
+                    >
+                      <IconMail />
+                    </div>
+                    <h3 className="mt-4 text-base font-semibold text-slate-800">Share</h3>
+                    <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
+                      {inviteLink
+                        ? 'คัดลอกลิงก์เชิญเพื่อแชร์ให้เพื่อนทำแบบทดสอบและส่งผลกลับมาได้เลย'
+                        : 'สร้างลิงก์เชิญแล้วแชร์ให้เพื่อนเข้ามาทำแบบทดสอบเพื่อเปรียบเทียบกัน'}
+                    </p>
+                    <p className="mt-3 text-xs font-semibold text-[var(--accent-strong)]">
+                      {inviteLoading ? 'กำลังสร้างลิงก์...' : inviteLink ? 'คัดลอกลิงก์เชิญ' : 'สร้างลิงก์เชิญ'}
+                    </p>
+                  </button>
                 </div>
               </div>
             )}
