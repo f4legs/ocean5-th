@@ -18,7 +18,7 @@ export default function DomainScores({ pct }: Props) {
           const info = DOMAIN_LABELS[factor as Factor]
           const score = pct[factor] ?? 0
           return (
-            <article key={factor} className="rounded-[1.6rem] bg-gradient-to-r from-[#f8fafb] to-[#f2f5f7] p-4 sm:p-5">
+            <article key={factor} className="rounded-[1.6rem] p-4 sm:p-5" style={{ background: `hsl(${DOMAIN_COLORS[factor as Factor].hue}, 38%, 97%)` }}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-4">
                   <div className="factor-medallion shrink-0"><span>{factor}</span></div>

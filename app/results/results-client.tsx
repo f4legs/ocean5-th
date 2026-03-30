@@ -8,7 +8,7 @@ import { calcScores, DIMENSION_INFO, ScoreResult } from '@/lib/scoring'
 import { STORAGE_KEYS } from '@/lib/storage-keys'
 import { getItemAsync, removeItem, setItem } from '@/lib/storage'
 import ReferenceNote from '@/components/reference-note'
-import { FACTOR_ORDER, DOMAIN_COLORS as DIMENSION_STYLES, pctToLabel, formatDuration } from '@/lib/ocean-constants'
+import { FACTOR_ORDER, DOMAIN_COLORS as DIMENSION_STYLES, pctToLabel } from '@/lib/ocean-constants'
 import { normalizeMarkdown } from '@/lib/markdown'
 import {
   buildExport, buildJsonFile, buildPdfFile, shareOrDownloadFile,
@@ -28,8 +28,6 @@ export default function ResultsClient() {
   const [report, setReport] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [fakeProgress, setFakeProgress] = useState(7)
-  const [loadingSeconds, setLoadingSeconds] = useState(0)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const [showRestartWarning, setShowRestartWarning] = useState(false)
@@ -45,8 +43,6 @@ export default function ResultsClient() {
   ) => {
     const requestId = activeRequestId.current + 1
     activeRequestId.current = requestId
-    setFakeProgress(7)
-    setLoadingSeconds(0)
     setLoading(true)
     setError(null)
 
@@ -111,27 +107,6 @@ export default function ResultsClient() {
 
     void streamReport()
   }, [])
-
-  useEffect(() => {
-    if (!loading) return
-
-    const startedAt = Date.now()
-
-    const interval = window.setInterval(() => {
-      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000)
-      setLoadingSeconds(elapsedSeconds)
-      setFakeProgress(prev => {
-        if (prev >= 93) return prev
-        if (prev < 24) return Math.min(93, prev + 6)
-        if (prev < 48) return Math.min(93, prev + 4)
-        if (prev < 72) return Math.min(93, prev + 3)
-        if (prev < 86) return Math.min(93, prev + 2)
-        return Math.min(93, prev + 1)
-      })
-    }, 1800)
-
-    return () => window.clearInterval(interval)
-  }, [loading])
 
   useEffect(() => {
     let cancelled = false
@@ -248,13 +223,6 @@ export default function ResultsClient() {
   const profileSummary = [profile.age && `อายุ ${profile.age} ปี`, profile.sex, profile.occupation]
     .filter(Boolean)
     .join(' · ')
-  const displayProgress = loading ? fakeProgress : report ? 100 : 0
-  const loadingMessage =
-    loadingSeconds < 30
-      ? 'AI กำลังสรุปภาพรวมบุคลิกภาพของคุณ'
-      : loadingSeconds < 70
-        ? 'AI กำลังเชื่อมโยงคะแนนทั้ง 5 มิติให้เป็นรายงานเดียวกัน'
-        : 'AI กำลังเรียบเรียงรายงานฉบับเต็มให้อ่านง่ายและละเอียด'
   const isReportComplete = Boolean(report) && !loading
 
   function handleReevaluate() {
@@ -325,9 +293,9 @@ export default function ResultsClient() {
       })
   }
 
-  function renderActionsCard(className = '') {
+  function renderActionsCard() {
     return (
-      <div className={`section-panel no-print rounded-[1.75rem] p-5 sm:p-6 ${className}`}>
+      <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
           การใช้งาน
         </p>
@@ -378,19 +346,19 @@ export default function ResultsClient() {
           </button>
 
           {showRestartWarning && (
-            <div className="mt-3 rounded-[1.2rem] border border-amber-200 bg-amber-50/90 px-4 py-3 text-xs leading-[1.6] text-amber-800">
-              <p className="font-medium">คะแนนและข้อมูลทั้งหมดจะถูกลบออก</p>
-              <p className="mt-0.5 text-amber-700">รวมถึงคำตอบ โปรไฟล์ และรายงาน AI ต้องการดำเนินการต่อหรือไม่?</p>
+            <div className="mt-3 muted-panel rounded-[1.2rem] px-4 py-3 text-xs leading-[1.6]" style={{ color: 'var(--text-soft)' }}>
+              <p className="font-semibold" style={{ color: 'var(--text-main)' }}>คะแนนและข้อมูลทั้งหมดจะถูกลบออก</p>
+              <p className="mt-0.5">รวมถึงคำตอบ โปรไฟล์ และรายงาน AI ต้องการดำเนินการต่อหรือไม่?</p>
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={handleRestart}
-                  className="rounded-full bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                  className="primary-button min-h-0 px-3 py-1.5 text-xs"
                 >
-                  ยืนยัน ลบและเริ่มใหม่
+                  ยืนยัน เริ่มใหม่
                 </button>
                 <button
                   onClick={() => setShowRestartWarning(false)}
-                  className="rounded-full border border-amber-300 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                  className="secondary-button min-h-0 px-3 py-1.5 text-xs"
                 >
                   ยกเลิก
                 </button>
@@ -602,36 +570,13 @@ export default function ResultsClient() {
 
               {loading && !report && (
                 <div className="py-10 text-center sm:px-8">
-                  <div className="loading-line" role="status" aria-label="กำลังโหลด" />
+                  <div className="loading-line" role="status" aria-label="กำลังวิเคราะห์ผลลัพธ์" />
                   <p className="mt-4 text-base font-medium text-slate-700">
-                    {loadingMessage}
+                    กำลังวิเคราะห์ผลลัพธ์…
                   </p>
                   <p className="body-faint mt-2 text-sm leading-[1.6]">
-                    รายงานอาจใช้เวลาประมาณ 2-3 นาที
+                    อาจใช้เวลา 1–3 นาที
                   </p>
-                  <div className="mx-auto mt-6 max-w-xl">
-                    <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="font-medium text-slate-700">ความคืบหน้าโดยประมาณ</span>
-                      <span className="text-slate-500">{displayProgress}%</span>
-                    </div>
-                    <div
-                      className="mt-3 rounded-full overflow-hidden"
-                      style={{ height: '6px', background: 'rgba(69,98,118,0.12)' }}
-                    >
-                      <div
-                        className="h-full rounded-full transition-[width] duration-1000 ease-out"
-                        style={{
-                          width: `${displayProgress}%`,
-                          background: 'var(--gradient-hero)',
-                          boxShadow: '0 0 8px rgba(69,98,118,0.4)',
-                        }}
-                      />
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-                      <span>เวลาที่ผ่านไป {formatDuration(loadingSeconds)}</span>
-                      <span>บางช่วงอาจค้างที่ 90%+ ชั่วคราว</span>
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -668,25 +613,7 @@ export default function ResultsClient() {
                 </div>
               )}
             </div>
-            {renderActionsCard('lg:hidden')}
-          </div>
-
-          <aside className="results-side space-y-6">
-            <div className="muted-panel print-avoid-break rounded-[1.75rem] p-5 sm:p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
-                คะแนนดิบ
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                {FACTOR_ORDER.map(factor => (
-                  <div key={factor} className="rounded-[1.4rem] bg-white/80 px-4 py-4 text-center">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-400">{factor}</div>
-                    <div className="mt-1 text-2xl font-semibold text-slate-800">{scores.raw[factor]}</div>
-                    <div className="mt-1 text-xs text-slate-500">จาก 50</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+            {/* Invite share card — inline, visible on all viewports */}
             {inviteCode && inviteShareStatus !== 'declined' && (
               <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
@@ -720,7 +647,57 @@ export default function ResultsClient() {
               </div>
             )}
 
-            {renderActionsCard('hidden lg:block')}
+            {/* LINE share banner — appears once report is done */}
+            {isReportComplete && (
+              <div className="section-panel no-print rounded-[1.75rem] p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                  แชร์ผลลัพธ์
+                </p>
+                <p className="mt-2 text-sm leading-[1.6]" style={{ color: 'var(--text-soft)' }}>
+                  แชร์ผลบุคลิกภาพของคุณให้เพื่อน หรือเชิญมาทำแบบทดสอบแล้วเปรียบเทียบกัน
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <a
+                    href={`https://social.line.me/share/?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="primary-button text-sm"
+                    style={{ background: '#06C755' }}
+                  >
+                    แชร์ผ่าน LINE
+                  </a>
+                  <button
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        void navigator.clipboard.writeText(window.location.origin)
+                      }
+                    }}
+                    className="secondary-button text-sm"
+                  >
+                    คัดลอกลิงก์
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {renderActionsCard()}
+          </div>
+
+          <aside className="results-side space-y-6">
+            <div className="muted-panel print-avoid-break rounded-[1.75rem] p-5 sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
+                คะแนนดิบ
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {FACTOR_ORDER.map(factor => (
+                  <div key={factor} className="rounded-[1.4rem] bg-white/80 px-4 py-4 text-center">
+                    <div className="text-xs uppercase tracking-[0.16em] text-slate-400">{factor}</div>
+                    <div className="mt-1 text-2xl font-semibold text-slate-800">{scores.raw[factor]}</div>
+                    <div className="mt-1 text-xs text-slate-500">จาก 50</div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             <p className="body-faint no-print px-2 text-center text-xs leading-[1.5]">
               อ้างอิง: IPIP / ipip.ori.org · Thai translation by Panida Yomaboot &amp; Andrew J. Cooper · App by FARS-AI Cognitive Science Team

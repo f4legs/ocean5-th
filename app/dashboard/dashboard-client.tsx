@@ -7,7 +7,13 @@ import ReactMarkdown from 'react-markdown'
 import { createClient } from '@/utils/supabase/client'
 import { DIMENSION_INFO } from '@/lib/scoring'
 import { FACET_NAMES } from '@/lib/scoring120'
-import { FACTOR_ORDER, type Factor } from '@/lib/ocean-constants'
+import {
+  FACTOR_ORDER,
+  DOMAIN_COLORS,
+  DOMAIN_LABELS,
+  buildDashboardStripGradient,
+  type Factor,
+} from '@/lib/ocean-constants'
 import { computeGroupDynamics } from '@/lib/group-dynamics'
 import { normalizeMarkdown } from '@/lib/markdown'
 import { isPublicDevEmail } from '@/lib/dev-access'
@@ -16,7 +22,7 @@ import {
   IconClose, IconHome, IconBarChart, IconUsers, IconUpload, IconMail,
   IconFileEdit, IconBot, IconBug, IconLogOut, IconPencil, IconTrash,
   IconCardSelf, IconCardTeam, IconCardTrend, IconCardShield,
-  IconCopy, IconCheck, IconUsersLg, IconDownload,
+  IconCopy, IconCheck, IconUsersLg, IconDownload, IconChevronRight,
 } from '@/components/icons'
 
 type Source = 'test' | 'upload' | 'shared'
@@ -40,10 +46,10 @@ interface OceanProfile {
 }
 
 const COMPARE_METHODS = [
-  { value: 'general', label: 'ภาพรวม (General)' },
-  { value: 'relationship', label: 'ความสัมพันธ์ (Relationship)' },
-  { value: 'teamwork', label: 'การทำงาน (Teamwork)' },
-  { value: 'strengths', label: 'จุดแข็ง-จุดอ่อน (Strengths)' },
+  { value: 'general', label: 'ภาพรวม', shortLabel: 'ภาพรวม' },
+  { value: 'relationship', label: 'ความสัมพันธ์', shortLabel: 'ความสัมพันธ์' },
+  { value: 'teamwork', label: 'การทำงาน', shortLabel: 'การทำงาน' },
+  { value: 'strengths', label: 'จุดแข็ง', shortLabel: 'จุดแข็ง' },
 ]
 const GROUP_REPORT_METHODS = [
   { value: 'teamwork', label: 'Teamwork' },
@@ -146,12 +152,30 @@ export default function DashboardClient() {
       }))
       setProfiles(normalizedProfiles)
       setLoading(false)
+
+      // Handle ?compareWith=<profileId> from results120 CTA
+      const compareWithId = new URLSearchParams(window.location.search).get('compareWith')
+      if (compareWithId && normalizedProfiles.some(p => p.id === compareWithId)) {
+        setSelectedA(compareWithId)
+        setActiveView('compare')
+      }
     }
     void init()
   }, [])
 
   const profileA = profiles.find(p => p.id === selectedA)
   const profileB = profiles.find(p => p.id === selectedB)
+
+  // Top-3 factors by absolute score delta (used for highlight bands in compare view)
+  const topDeltaFactors = useMemo(() => new Set(
+    profileA && profileB
+      ? FACTOR_ORDER
+        .map(f => ({ f, d: Math.abs((profileA.scores.pct[f] ?? 0) - (profileB.scores.pct[f] ?? 0)) }))
+        .sort((a, b) => b.d - a.d)
+        .slice(0, 3)
+        .map(({ f }) => f)
+      : []
+  ), [profileA, profileB])
 
   useEffect(() => {
     async function loadComparison() {
@@ -802,12 +826,77 @@ export default function DashboardClient() {
   const navIdle = 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
 
   return (
-    <main id="main" className="page-shell dashboard-unified-bg lg:h-dvh lg:overflow-hidden lg:!p-0">
+    <main id="main" className="page-shell dashboard-unified-bg dashboard-page lg:h-dvh lg:overflow-hidden lg:!p-0">
+
+      {/* ── Mobile tab navigation (hidden on desktop) ─────────── */}
+      <div className="lg:hidden sticky top-0 z-20 border-b border-[var(--line)] bg-white/95 backdrop-blur-sm">
+        <div className="relative">
+        <div className="flex overflow-x-auto scrollbar-hidden pr-10">
+          <button
+            onClick={() => { setActiveView('default'); setViewingProfileId(null) }}
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm shrink-0 border-b-2 transition-colors font-medium ${activeView === 'default' || activeView === 'profile' ? 'border-[var(--accent)] text-[var(--accent-strong)]' : 'border-transparent text-slate-400'}`}
+          >
+            <IconHome />
+            <span>โปรไฟล์</span>
+          </button>
+          <button
+            onClick={() => { setActiveView('compare'); setViewingProfileId(null) }}
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm shrink-0 border-b-2 transition-colors font-medium ${activeView === 'compare' ? 'border-[var(--accent)] text-[var(--accent-strong)]' : 'border-transparent text-slate-400'}`}
+          >
+            <IconBarChart />
+            <span>เปรียบเทียบ</span>
+          </button>
+          <button
+            onClick={() => { setActiveView('group-compare'); setViewingProfileId(null) }}
+            className={`flex items-center gap-1.5 px-4 py-3 text-sm shrink-0 border-b-2 transition-colors font-medium ${activeView === 'group-compare' ? 'border-[var(--accent)] text-[var(--accent-strong)]' : 'border-transparent text-slate-400'}`}
+          >
+            <IconUsers />
+            <span>กลุ่ม</span>
+          </button>
+          <label className={`flex items-center gap-1.5 px-4 py-3 text-sm shrink-0 border-b-2 border-transparent text-slate-400 cursor-pointer`}>
+            <IconUpload />
+            <span>นำเข้า</span>
+            <input ref={fileInputRef} type="file" accept=".json,.pdf,application/json,application/pdf" className="sr-only" onChange={handleUpload} />
+          </label>
+          <button
+            onClick={handleInvite}
+            className="flex items-center gap-1.5 px-4 py-3 text-sm shrink-0 border-b-2 border-transparent text-slate-400"
+          >
+            <IconMail />
+            <span>เชิญ</span>
+          </button>
+        </div>
+        {/* Scroll-more hint: right fade + chevron */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 flex items-center justify-end pr-2.5 text-slate-300"
+          style={{ background: 'linear-gradient(to right, transparent 0%, rgba(255,255,255,0.97) 55%)' }}>
+          <IconChevronRight />
+        </div>
+        </div>
+        {/* Invite link inline display for mobile */}
+        {inviteLink && (
+          <div className="px-4 py-2 bg-green-50 border-t border-green-100 flex items-center gap-2">
+            <input readOnly value={inviteLink} className="flex-1 bg-white border border-green-200 rounded px-2 py-1 text-[11px] text-green-800 focus:outline-none" />
+            <button
+              onClick={() => { navigator.clipboard.writeText(inviteLink); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+              className={`flex items-center justify-center w-7 h-7 rounded shrink-0 ${copied ? 'bg-green-100 text-green-600' : 'bg-green-600 text-white'}`}
+            >
+              {copied ? <IconCheck /> : <IconCopy />}
+            </button>
+          </div>
+        )}
+        {uploadError && (
+          <div className="px-4 py-2 bg-red-50 border-t border-red-100 flex items-center justify-between gap-2">
+            <p className="text-[11px] text-red-600 leading-tight">{uploadError}</p>
+            <button onClick={() => setUploadError(null)} className="text-[11px] text-red-400 underline shrink-0">ปิด</button>
+          </div>
+        )}
+      </div>
+
       <div className="page-wrap max-w-7xl lg:max-w-none lg:h-full">
         <div className="grid gap-4 lg:gap-3 lg:h-full lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
 
-          {/* ── Left Sidebar ────────────────────────────────────── */}
-          <aside className="space-y-4 lg:sticky lg:top-0 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:py-3 lg:pl-3 scrollbar-hidden">
+          {/* ── Left Sidebar (desktop only) ─────────────────────── */}
+          <aside className="hidden lg:block space-y-4 lg:sticky lg:top-0 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:py-3 lg:pl-3 scrollbar-hidden">
             <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
               <Image
                 src="/logo_b5.png"
@@ -824,10 +913,10 @@ export default function DashboardClient() {
               <nav className="mt-6 flex flex-col gap-0.5">
                 <button
                   onClick={() => { setActiveView('default'); setViewingProfileId(null) }}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors text-sm ${activeView === 'default' ? navActive : navIdle}`}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors text-sm ${activeView === 'default' || activeView === 'profile' ? navActive : navIdle}`}
                 >
                   <IconHome />
-                  <span>หน้าแรก (Overview)</span>
+                  <span>โปรไฟล์</span>
                 </button>
 
                 <button
@@ -835,7 +924,7 @@ export default function DashboardClient() {
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors text-sm ${activeView === 'compare' ? navActive : navIdle}`}
                 >
                   <IconBarChart />
-                  <span>เปรียบเทียบ (Compare)</span>
+                  <span>เปรียบเทียบ</span>
                 </button>
 
                 <button
@@ -843,11 +932,11 @@ export default function DashboardClient() {
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-colors text-sm ${activeView === 'group-compare' ? navActive : navIdle}`}
                 >
                   <IconUsers />
-                  <span>กลุ่ม (Group Dynamics)</span>
+                  <span>พลวัตกลุ่ม</span>
                 </button>
 
                 <div className="pt-4 pb-1 px-3.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">TOOLS</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">เครื่องมือ</span>
                 </div>
 
                 <label className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer transition-colors text-sm ${navIdle}`}>
@@ -1014,12 +1103,13 @@ export default function DashboardClient() {
           <div className="space-y-5 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:py-3 lg:pr-3 scrollbar-hidden">
             {activeView === 'default' && (
               <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none sm:px-8 sm:py-10">
-                <span className="eyebrow">
-                  <span className="accent-dot" aria-hidden="true" />
-                  guidelines & overview
-                </span>
-                <h2 className="display-title mt-6 text-3xl">ยินดีต้อนรับสู่ OCEAN Dashboard</h2>
-                <p className="mt-2 text-slate-500 text-sm">เครื่องมือวิเคราะห์บุคลิกภาพระดับสากล เพื่อความเข้าใจตนเองและทีมงาน</p>
+                <div className="flex items-baseline justify-between gap-4">
+                  <h2 className="display-title text-3xl sm:text-4xl">OCEAN Dashboard</h2>
+                  {profiles.length > 0 && (
+                    <span className="shrink-0 text-sm font-semibold tabular-nums text-[var(--text-faint)]">{profiles.length} โปรไฟล์</span>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-[var(--text-soft)]">เครื่องมือวิเคราะห์บุคลิกภาพระดับสากล เพื่อความเข้าใจตนเองและทีมงาน</p>
 
                 <div className="mt-8 grid gap-3 sm:grid-cols-2">
                   <section className="p-5 rounded-2xl bg-white hover:shadow-sm transition-all space-y-3 cursor-default">
@@ -1070,10 +1160,120 @@ export default function DashboardClient() {
                   <div>
                     <h4 className="text-xs font-semibold text-slate-800 mb-1">เริ่มต้นใช้งาน</h4>
                     <p className="text-[13px] text-slate-500 leading-relaxed">
-                      เลือกเมนู <strong className="text-slate-700 font-semibold">Comparing OCEAN</strong> จากแถบด้านข้าง แล้วเลือก 2 โปรไฟล์เพื่อเริ่มต้น ยังไม่มีโปรไฟล์ใช่ไหม? ใช้ <strong className="text-slate-700 font-semibold">Send Invite</strong> เพื่อชวนเพื่อนเข้ามาได้เลย
+                      เลือกแท็บ <strong className="text-slate-700 font-semibold">เปรียบเทียบ</strong> แล้วเลือก 2 โปรไฟล์เพื่อเริ่มต้น ยังไม่มีโปรไฟล์ใช่ไหม? กด <strong className="text-slate-700 font-semibold">เชิญ</strong> เพื่อชวนเพื่อนเข้ามาได้เลย
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* ── Mobile profile card grid (default view, desktop uses sidebar) ── */}
+            {activeView === 'default' && (
+              <div className="lg:hidden">
+                {loading ? (
+                  <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none text-center">
+                    <p className="body-soft text-sm">กำลังโหลด...</p>
+                  </div>
+                ) : profiles.length === 0 ? (
+                  <div className="glass-panel rounded-[2rem] border border-[var(--line)] bg-transparent px-6 py-8 shadow-none text-center">
+                    <p className="text-sm font-medium text-slate-700">ยังไม่มีโปรไฟล์</p>
+                    <p className="body-soft mt-1 text-xs">ทำแบบทดสอบหรือเชิญเพื่อนเพื่อเริ่มต้น</p>
+                  </div>
+                ) : (
+                  <div>
+                    <hr className="fold-divider mb-5" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {profiles.map(p => {
+                        const dominantFactor = FACTOR_ORDER.reduce((best, f) => p.scores.pct[f] > p.scores.pct[best] ? f : best, FACTOR_ORDER[0])
+                        const sourceLabel = SOURCE_LABELS[p.source]
+                        const date = new Date(p.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+                        const isEditing = editingId === p.id
+                        const dominantColor = DOMAIN_COLORS[dominantFactor as Factor].barColor
+                        const cardBg = (() => {
+                          if (p.test_type === '50') return dominantColor
+                          return buildDashboardStripGradient(p.scores.pct, dominantFactor)
+                        })()
+                        return (
+                          <div
+                            key={p.id}
+                            className="rounded-2xl p-5 transition-all overflow-hidden"
+                            style={{ background: cardBg }}
+                          >
+                            <div className="mb-3 flex items-start justify-between gap-3">
+                              <span className="pt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">
+                                {DOMAIN_LABELS[dominantFactor as Factor].sublabel}
+                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-white/20 text-white">
+                                  {p.test_type} ข้อ
+                                </span>
+                                {!isEditing && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation()
+                                        setEditingId(p.id)
+                                        setEditLabel(p.label)
+                                      }}
+                                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/16 text-white/90 transition-colors hover:bg-white/24"
+                                      title="แก้ไขชื่อ"
+                                      aria-label={`แก้ไขชื่อ ${p.label}`}
+                                    >
+                                      <IconPencil />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation()
+                                        handleDeleteRequest(p.id)
+                                      }}
+                                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/16 text-white/90 transition-colors hover:bg-white/24"
+                                      title="ลบ"
+                                      aria-label={`ลบ ${p.label}`}
+                                    >
+                                      <IconTrash />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {isEditing ? (
+                              <div className="space-y-3">
+                                <input
+                                  autoFocus
+                                  value={editLabel}
+                                  onChange={(event) => setEditLabel(event.target.value)}
+                                  onBlur={() => void handleRename(p.id, editLabel)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') void handleRename(p.id, editLabel)
+                                    if (event.key === 'Escape') {
+                                      setEditingId(null)
+                                      setEditLabel(p.label)
+                                    }
+                                  }}
+                                  className="w-full rounded-xl border border-white/30 bg-white/14 px-3 py-2.5 text-sm font-medium text-white placeholder:text-white/45 focus:outline-none focus:ring-2 focus:ring-white/45"
+                                  placeholder="ตั้งชื่อโปรไฟล์"
+                                />
+                                <p className="text-[11px] text-white/60">{sourceLabel} · {date}</p>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleViewProfile(p.id)}
+                                className="block w-full text-left active:scale-[0.99]"
+                              >
+                                <p className="font-semibold text-white truncate" style={{ fontSize: 'clamp(0.9rem, 3vw, 1.05rem)' }}>{p.label}</p>
+                                <p className="mt-1.5 text-[11px] text-white/60">{sourceLabel} · {date}</p>
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1081,20 +1281,21 @@ export default function DashboardClient() {
               <>
                 {/* ── Profile Selection ── */}
                 <div className="glass-panel relative z-10 rounded-2xl border border-[var(--line)] bg-transparent shadow-none">
-                  <div className="px-6 pt-5 pb-4 border-b border-[var(--line)] flex items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-sm font-semibold text-[var(--text-main)]">Compare Profiles</h2>
-                      <p className="text-[11px] text-[var(--text-faint)] mt-0.5">เลือกสองโปรไฟล์จากแถบซ้ายเพื่อเปรียบเทียบ</p>
-                    </div>
-                    <select
-                      value={compareMethod}
-                      onChange={e => { setCompareMethod(e.target.value); setAiReport(''); setCompareError(null) }}
-                      className="rounded-lg border border-[var(--line-strong)] bg-white px-3 py-1.5 text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] shrink-0"
-                    >
+                  <div className="px-6 pt-5 pb-4 border-b border-[var(--line)]">
+                    <h2 className="text-sm font-semibold text-[var(--text-main)]">เปรียบเทียบโปรไฟล์</h2>
+                    <p className="text-[11px] text-[var(--text-faint)] mt-0.5">เลือกสองโปรไฟล์เพื่อเปรียบเทียบบุคลิกภาพ</p>
+                    {/* Method chips */}
+                    <div className="mt-3 flex flex-wrap gap-1.5">
                       {COMPARE_METHODS.map(m => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
+                        <button
+                          key={m.value}
+                          onClick={() => { setCompareMethod(m.value); setAiReport(''); setCompareError(null) }}
+                          className={`choice-chip text-xs ${compareMethod === m.value ? 'active' : ''}`}
+                        >
+                          {m.shortLabel}
+                        </button>
                       ))}
-                    </select>
+                    </div>
                   </div>
 
                   <div className="p-6">
@@ -1125,16 +1326,15 @@ export default function DashboardClient() {
                     <div className="mt-5 flex items-center gap-3">
                       {(!profileA || !profileB) && (
                         <p className="text-xs text-[var(--text-faint)] flex-1">
-                          {!profileA && !profileB ? 'Click a slot above to search and pick a profile.' : 'Pick one more profile to compare.'}
+                          {!profileA && !profileB ? 'เลือกโปรไฟล์ทั้งสองช่องเพื่อเริ่มต้น' : 'เลือกอีกหนึ่งโปรไฟล์เพื่อเปรียบเทียบ'}
                         </p>
                       )}
                       <button
                         onClick={handleCompare}
                         disabled={!profileA || !profileB || comparing}
-                        className="primary-button ml-auto"
-                        style={{ minHeight: '2.4rem', padding: '0.55rem 1.4rem', fontSize: '0.82rem', borderRadius: '0.75rem' }}
+                        className="primary-button ml-auto text-sm"
                       >
-                        {comparing ? 'Analyzing…' : 'Run Comparison'}
+                        {comparing ? 'กำลังวิเคราะห์…' : 'เปรียบเทียบ'}
                       </button>
                     </div>
                   </div>
@@ -1144,7 +1344,7 @@ export default function DashboardClient() {
                 {(profileA || profileB) && (
                   <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
                     <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">Five Factor Scores</h2>
+                      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">คะแนน 5 มิติ</h2>
                       <div className="flex items-center gap-3 text-[10px] font-medium text-[var(--text-soft)]">
                         {profileA && (
                           <span className="flex items-center gap-1.5">
@@ -1161,15 +1361,16 @@ export default function DashboardClient() {
                       </div>
                     </div>
 
-                    <div className="space-y-5">
+                    <div className="space-y-3">
                       {FACTOR_ORDER.map(factor => {
                         const info = DIMENSION_INFO[factor]
                         const aScore = profileA?.scores.pct[factor]
                         const bScore = profileB?.scores.pct[factor]
                         const delta = aScore !== undefined && bScore !== undefined ? aScore - bScore : null
+                        const isTopDelta = topDeltaFactors.has(factor)
 
                         return (
-                          <div key={factor} className="flex items-start gap-3">
+                          <div key={factor} className={`flex items-start gap-3 rounded-xl px-3 py-3 transition-colors ${isTopDelta ? 'bg-[rgba(69,98,118,0.06)]' : ''}`}>
                             <span className="factor-medallion shrink-0 mt-0.5"><span>{factor}</span></span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-2">
@@ -1203,31 +1404,42 @@ export default function DashboardClient() {
                     </div>
 
                     {profileA?.scores.facets && profileB?.scores.facets && (
-                      <details className="mt-6 border-t border-[var(--line)] pt-4">
-                        <summary className="cursor-pointer text-xs font-semibold text-[var(--accent)] hover:text-[var(--accent-strong)] transition-colors select-none">
-                          Show 30 Facets
-                        </summary>
-                        <div className="mt-4 space-y-1">
-                          {Object.entries(FACET_NAMES).map(([code, name]) => {
-                            const aFacet = profileA.scores.facets?.[code]
-                            const bFacet = profileB?.scores.facets?.[code]
-                            return (
-                              <div key={code} className="flex items-center gap-3 text-xs py-0.5">
-                                <span className="flex-1 text-[var(--text-soft)] truncate">{name}</span>
-                                {aFacet && <span className="w-10 text-right text-blue-600 font-medium tabular-nums">{Math.round(aFacet.pct)}%</span>}
-                                {bFacet && <span className="w-10 text-right text-purple-600 font-medium tabular-nums">{Math.round(bFacet.pct)}%</span>}
+                      <div className="mt-4 border-t border-[var(--line)] pt-4 space-y-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: 'var(--text-faint)' }}>ลักษณะย่อย 30 ด้าน</p>
+                        {FACTOR_ORDER.map(factor => {
+                          const facetEntries = Object.entries(FACET_NAMES).filter(([code]) => code.startsWith(factor))
+                          if (facetEntries.length === 0) return null
+                          const factorInfo = DIMENSION_INFO[factor]
+                          return (
+                            <details key={factor} className="rounded-xl border border-[var(--line)] overflow-hidden">
+                              <summary className="cursor-pointer px-4 py-2.5 text-xs font-semibold select-none flex items-center gap-2" style={{ color: 'var(--text-main)', background: 'var(--page-surface)' }}>
+                                <span className="factor-medallion shrink-0" style={{ width: '1.4rem', height: '1.4rem', fontSize: '0.6rem' }}><span>{factor}</span></span>
+                                {factorInfo.label}
+                              </summary>
+                              <div className="px-4 py-2 space-y-1 bg-white">
+                                {facetEntries.map(([code, name]) => {
+                                  const aFacet = profileA.scores.facets?.[code]
+                                  const bFacet = profileB?.scores.facets?.[code]
+                                  return (
+                                    <div key={code} className="flex items-center gap-3 text-xs py-0.5">
+                                      <span className="flex-1 text-[var(--text-soft)] truncate">{name}</span>
+                                      {aFacet && <span className="w-10 text-right text-blue-600 font-medium tabular-nums">{Math.round(aFacet.pct)}%</span>}
+                                      {bFacet && <span className="w-10 text-right text-purple-600 font-medium tabular-nums">{Math.round(bFacet.pct)}%</span>}
+                                    </div>
+                                  )
+                                })}
                               </div>
-                            )
-                          })}
-                        </div>
-                      </details>
+                            </details>
+                          )
+                        })}
+                      </div>
                     )}
                   </div>
                 )}
 
                 {profileA && !profileB && profileA.ai_report && (
                   <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
-                    <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)] mb-4">Deep AI Report</h2>
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)] mb-4">รายงาน AI เชิงลึก</h2>
                     <div className="report-markdown">
                       <ReactMarkdown>{profileA.ai_report}</ReactMarkdown>
                     </div>
@@ -1237,21 +1449,20 @@ export default function DashboardClient() {
                 {profileA && profileB && (comparing || aiReport || compareError) && (
                   <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">AI Comparison Report</h2>
+                      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">รายงาน AI เปรียบเทียบ</h2>
                       {aiReport && !comparing && (
                         <button
                           onClick={handleSavePdf}
                           disabled={exportingPdf}
-                          className="primary-button"
-                          style={{ minHeight: '2rem', padding: '0.4rem 1rem', fontSize: '0.78rem', borderRadius: '0.65rem' }}
+                          className="secondary-button min-h-0 px-4 py-2 text-xs"
                         >
-                          {exportingPdf ? 'กำลังสร้าง PDF…' : 'Save PDF'}
+                          {exportingPdf ? 'กำลังสร้าง PDF…' : 'บันทึก PDF'}
                         </button>
                       )}
                     </div>
                     {exportError && <p className="text-xs text-red-500 mb-3">{exportError}</p>}
                     {compareError && <p className="text-xs text-red-500 mb-3">{compareError}</p>}
-                    {comparing && !aiReport && <p className="body-soft text-sm animate-pulse">Analyzing…</p>}
+                    {comparing && !aiReport && <p className="body-soft text-sm animate-pulse">กำลังวิเคราะห์…</p>}
                     {aiReport && (
                       <div className="report-markdown">
                         <ReactMarkdown>{aiReport}</ReactMarkdown>
@@ -1612,7 +1823,7 @@ export default function DashboardClient() {
               <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 {(() => {
                   const p = profiles.find(prof => prof.id === viewingProfileId)
-                  if (!p) return <p className="p-8 text-center text-slate-400">Profile not found</p>
+                  if (!p) return <p className="p-8 text-center text-slate-400">ไม่พบโปรไฟล์</p>
 
                   return (
                     <>
@@ -1642,10 +1853,10 @@ export default function DashboardClient() {
                               className="secondary-button min-h-0 px-5 py-2.5 text-xs"
                             >
                               {analyzingProfileId === p.id
-                                ? 'Generating analysis...'
+                                ? 'กำลังสร้างรายงาน...'
                                 : p.ai_report
-                                  ? 'Regenerate Analysis'
-                                  : 'Generate Analysis'}
+                                  ? 'สร้างรายงานใหม่'
+                                  : 'สร้างรายงาน AI'}
                             </button>
                             <button
                               onClick={() => {
@@ -1656,7 +1867,7 @@ export default function DashboardClient() {
                               className="primary-button min-h-0 px-5 py-2.5 text-xs"
                             >
                               <IconBarChart />
-                              <span>Compare this Profile</span>
+                              <span>เปรียบเทียบโปรไฟล์นี้</span>
                             </button>
 
                             {p.source === 'test' && (
@@ -1667,12 +1878,12 @@ export default function DashboardClient() {
                               >
                                 {profileShareCopiedProfileId === p.id || profileShareLinkProfileId === p.id ? <IconCheck /> : null}
                                 {profileShareLoading && profileShareProfileId === p.id
-                                  ? 'Generating...'
+                                  ? 'กำลังสร้างลิงก์...'
                                   : profileShareCopiedProfileId === p.id
                                     ? 'คัดลอกลิงก์แล้ว'
                                     : profileShareLinkProfileId === p.id
                                       ? 'ลิงก์พร้อมแชร์'
-                                      : 'Share to other member'}
+                                      : 'แชร์ให้สมาชิก'}
                               </button>
                             )}
 

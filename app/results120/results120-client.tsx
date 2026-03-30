@@ -235,15 +235,24 @@ export default function Results120Client() {
     'AI กำลังเรียบเรียงรายงานฉบับเต็ม'
   const isReportComplete = Boolean(report) && !loading
 
-  function renderActionsCard(className = '') {
+  function renderActionsCard() {
     return (
-      <div className={`section-panel rounded-[1.75rem] p-5 sm:p-6 ${className}`}>
+      <div className="section-panel rounded-[1.75rem] p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">การใช้งาน</p>
         <div className="mt-4 space-y-2">
           <Link href="/dashboard" className="primary-button w-full justify-center text-sm flex items-center gap-2">
             <IconHome />
             ไปที่ Dashboard
           </Link>
+          {/* Compare CTA — directs to dashboard compare view */}
+          {profileId && (
+            <Link
+              href={`/dashboard?compareWith=${profileId}`}
+              className="secondary-button w-full justify-center text-sm"
+            >
+              เปรียบเทียบกับคนอื่น →
+            </Link>
+          )}
           {canUpgrade && (
             <Link href="/quiz300" className="secondary-button w-full justify-center text-sm">
               ต่อยอด 300 ข้อ
@@ -335,11 +344,6 @@ export default function Results120Client() {
               estimatedTime="2-4 นาที"
               onRetry={() => triggerStreamReport(scores, accessToken, profileId)}
             />
-            {renderActionsCard('lg:hidden')}
-          </div>
-
-          <aside className="results-side space-y-6">
-            <SidebarScores pct={scores.domains.pct} />
 
             {inviteCode && inviteShareStatus !== 'declined' && (
               <InviteShareCard
@@ -352,7 +356,11 @@ export default function Results120Client() {
               />
             )}
 
-            {renderActionsCard('hidden lg:block')}
+            {renderActionsCard()}
+          </div>
+
+          <aside className="results-side space-y-6">
+            <SidebarScores pct={scores.domains.pct} />
 
             <p className="body-faint px-2 text-center text-xs leading-[1.5]">
               อ้างอิง: IPIP-NEO-120 · Johnson (2014) · ipip.ori.org

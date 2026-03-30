@@ -31,6 +31,9 @@
 
   /* Hero gradient */
   --gradient-hero: linear-gradient(150deg, #456276 0%, #233643 100%);
+
+  /* Dashboard warm paper background */
+  --dashboard-bg: #F7F6F3;
 }
 
 html {
@@ -398,6 +401,19 @@ select:focus-visible {
   background: #f4f7f9;
 }
 
+/* ── Dashboard: warm paper background (origami paper tone) ── */
+.dashboard-page {
+  background: var(--dashboard-bg);
+}
+
+/* ── Fold-line section divider (origami crease) ── */
+.fold-divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(76, 93, 105, 0.22), transparent);
+  margin: 0;
+}
+
 .eyebrow {
   display: inline-flex;
   align-items: center;
@@ -423,9 +439,9 @@ select:focus-visible {
 
 .section-title {
   font-family: var(--font-display), Georgia, serif;
-  font-weight: 600;
-  line-height: 1.20;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
   color: var(--text-main);
 }
 

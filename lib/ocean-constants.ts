@@ -36,6 +36,69 @@ export const DOMAIN_COLORS: Record<Factor, { barColor: string; chipBg: string; c
   N: { barColor: 'hsl(348,52%,52%)', chipBg: 'hsl(348,60%,95%)', chipText: 'hsl(348,45%,36%)', hue: '348' },
 }
 
+const DASHBOARD_STRIP_DOMINANT_WIDTH = 72
+const DASHBOARD_STRIP_OTHER_BASE_WIDTH = 2
+const DASHBOARD_STRIP_OTHER_PROPORTIONAL_WIDTH = 20
+const DASHBOARD_STRIP_ANGLE_DEG = 110
+
+function roundStripPct(value: number): number {
+  return Number(value.toFixed(3))
+}
+
+export function getDashboardStripSegments(
+  scores: Partial<Record<Factor, number>>,
+  dominantFactor: Factor,
+): Array<{ factor: Factor; width: number }> {
+  const factorOrderIndex = new Map(FACTOR_ORDER.map((factor, index) => [factor, index]))
+  const otherScores = FACTOR_ORDER
+    .filter((factor) => factor !== dominantFactor)
+    .map((factor) => ({
+    factor,
+    score: Math.max(0, scores[factor] ?? 0),
+    }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return (factorOrderIndex.get(a.factor) ?? 0) - (factorOrderIndex.get(b.factor) ?? 0)
+    })
+  const otherSum = otherScores.reduce((sum, item) => sum + item.score, 0)
+  const proportionalFallback = DASHBOARD_STRIP_OTHER_PROPORTIONAL_WIDTH / otherScores.length
+  const segments = [
+    { factor: dominantFactor, width: DASHBOARD_STRIP_DOMINANT_WIDTH },
+    ...otherScores.map(({ factor, score }) => ({
+      factor,
+      width: DASHBOARD_STRIP_OTHER_BASE_WIDTH + (
+        otherSum > 0
+          ? (score / otherSum) * DASHBOARD_STRIP_OTHER_PROPORTIONAL_WIDTH
+          : proportionalFallback
+      ),
+    })),
+  ]
+  const total = segments.reduce((sum, segment) => sum + segment.width, 0)
+  segments[segments.length - 1]!.width += 100 - total
+
+  return segments.map((segment) => ({
+    factor: segment.factor,
+    width: roundStripPct(segment.width),
+  }))
+}
+
+export function buildDashboardStripGradient(
+  scores: Partial<Record<Factor, number>>,
+  dominantFactor: Factor,
+): string {
+  const stops: string[] = []
+  let pos = 0
+
+  for (const segment of getDashboardStripSegments(scores, dominantFactor)) {
+    const color = DOMAIN_COLORS[segment.factor].barColor
+    stops.push(`${color} ${roundStripPct(pos)}%`)
+    pos += segment.width
+    stops.push(`${color} ${roundStripPct(pos)}%`)
+  }
+
+  return `linear-gradient(${DASHBOARD_STRIP_ANGLE_DEG}deg, ${stops.join(', ')})`
+}
+
 // Maps a percentile score to a Thai level label
 export function pctToLabel(pct: number): string {
   if (pct >= 70) return 'สูง'

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { LABELS } from '@/lib/ocean-constants'
+import { IconChevronLeft, IconChevronRight } from '@/components/icons'
 
 export interface QuizItem {
   id: number
@@ -192,9 +193,33 @@ export default function QuizShell({ config }: Props) {
 
   return (
     <main id="main" className="page-shell">
+      {/* Mobile-only sticky progress strip */}
+      <div className="lg:hidden sticky top-0 z-20 flex items-center gap-3 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-[var(--line)]">
+        <span className="text-xs font-semibold tabular-nums shrink-0" style={{ color: 'var(--accent-strong)', minWidth: '2.5rem' }}>
+          {progressPct}%
+        </span>
+        <div
+          className="flex-1 rounded-full overflow-hidden"
+          style={{ height: '4px', background: 'rgba(69,98,118,0.12)' }}
+          role="progressbar"
+          aria-valuenow={progressPct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`ความคืบหน้า ${progressPct}%`}
+        >
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{ width: `${progressPct}%`, background: 'var(--gradient-hero)' }}
+          />
+        </div>
+        <span className="text-xs tabular-nums shrink-0" style={{ color: 'var(--text-faint)' }}>
+          {totalAnswered}/{items.length}
+        </span>
+      </div>
+
       <div className="page-wrap">
         <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
-          <aside className="space-y-4 lg:sticky lg:top-6">
+          <aside className="hidden lg:block space-y-4 lg:sticky lg:top-6">
             <section className="glass-panel rounded-[2rem] px-5 py-6 sm:px-6">
               <span className="eyebrow">
                 <span className="accent-dot" aria-hidden="true" />
@@ -214,12 +239,9 @@ export default function QuizShell({ config }: Props) {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--accent-strong)]">
                     ความคืบหน้า
                   </p>
-                  <div className="mt-3 flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-3xl font-semibold text-slate-900">{progressPct}%</p>
-                      <p className="body-faint mt-1 text-sm">{totalAnswered} / {items.length} ข้อ</p>
-                    </div>
-                    <div className="factor-medallion factor-medallion-number"><span>{page}</span></div>
+                  <div className="mt-3">
+                    <p className="text-3xl font-semibold text-slate-900">{progressPct}%</p>
+                    <p className="body-faint mt-1 text-sm">{totalAnswered} / {items.length} ข้อ</p>
                   </div>
                   <div
                     className="mt-4 rounded-full overflow-hidden"
@@ -409,7 +431,7 @@ export default function QuizShell({ config }: Props) {
                     disabled={page === 1 || isCompleting}
                     className="secondary-button px-6"
                   >
-                    <span aria-hidden="true">←</span>
+                    <IconChevronLeft aria-hidden="true" />
                     ย้อนกลับ
                   </button>
                   <button
@@ -418,7 +440,7 @@ export default function QuizShell({ config }: Props) {
                     className="primary-button px-7"
                   >
                     {page < totalPages ? 'ถัดไป' : isCompleting ? 'กำลังบันทึกผลลัพธ์...' : 'ดูผลลัพธ์'}
-                    <span aria-hidden="true">→</span>
+                    <IconChevronRight aria-hidden="true" />
                   </button>
                 </div>
               </div>
