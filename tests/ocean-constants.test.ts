@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildDashboardStripGradient, getDashboardStripSegments } from '@/lib/ocean-constants'
+import { buildDashboardStripGradient, DOMAIN_COLORS, getDashboardStripSegments } from '@/lib/ocean-constants'
 
 describe('dashboard strip helpers', () => {
   it('keeps low non-dominant scores visible with a 2 percent minimum base', () => {
@@ -45,5 +45,12 @@ describe('dashboard strip helpers', () => {
     )
 
     expect(segments.map((segment) => segment.factor)).toEqual(['O', 'N', 'C', 'E', 'A'])
+  })
+
+  it('exposes strong, soft, and track colors for compare rows', () => {
+    expect(DOMAIN_COLORS.O.compareStrong).toBeTruthy()
+    expect(DOMAIN_COLORS.O.compareSoft).toBeTruthy()
+    expect(DOMAIN_COLORS.O.compareTrack).toBeTruthy()
+    expect(DOMAIN_COLORS.N.compareStrong).not.toBe(DOMAIN_COLORS.N.compareSoft)
   })
 })

@@ -24,6 +24,7 @@ import {
   IconCopy, IconCheck, IconUsersLg, IconDownload, IconChevronRight,
 } from '@/components/icons'
 import DashboardAboutContent from '@/components/dashboard/dashboard-about-content'
+import CompareBarRow from '@/components/dashboard/compare-bar-row'
 
 type Source = 'test' | 'upload' | 'shared'
 type TestType = '50' | '120' | '300'
@@ -1392,17 +1393,23 @@ export default function DashboardClient() {
                   <div className="glass-panel rounded-2xl border border-[var(--line)] bg-transparent px-6 py-6 shadow-none">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-strong)]">คะแนน 5 มิติ</h2>
-                      <div className="flex items-center gap-3 text-[10px] font-medium text-[var(--text-soft)]">
+                      <div className="flex flex-wrap items-center justify-end gap-3 text-[10px] font-medium text-[var(--text-soft)]">
                         {profileA && (
                           <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
-                            {profileA.label}
+                            <span
+                              className="inline-block h-1.5 w-5 rounded-full"
+                              style={{ background: 'rgba(69,98,118,0.82)' }}
+                            />
+                            สีเข้ม = {profileA.label}
                           </span>
                         )}
                         {profileB && (
                           <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-purple-400 inline-block" />
-                            {profileB.label}
+                            <span
+                              className="inline-block h-1.5 w-5 rounded-full"
+                              style={{ background: 'rgba(69,98,118,0.38)' }}
+                            />
+                            สีอ่อน = {profileB.label}
                           </span>
                         )}
                       </div>
@@ -1417,35 +1424,16 @@ export default function DashboardClient() {
                         const isTopDelta = topDeltaFactors.has(factor)
 
                         return (
-                          <div key={factor} className={`flex items-start gap-3 rounded-xl px-3 py-3 transition-colors ${isTopDelta ? 'bg-[rgba(69,98,118,0.06)]' : ''}`}>
-                            <span className="factor-medallion shrink-0 mt-0.5"><span>{factor}</span></span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-[var(--text-main)]">{info.label}</span>
-                                <div className="flex items-center gap-2.5 text-[11px]">
-                                  {aScore !== undefined && <span className="text-blue-600 font-semibold tabular-nums">{Math.round(aScore)}%</span>}
-                                  {bScore !== undefined && <span className="text-purple-600 font-semibold tabular-nums">{Math.round(bScore)}%</span>}
-                                  {delta !== null && (
-                                    <span className={`font-semibold tabular-nums ${Math.abs(delta) >= 20 ? 'text-red-500' : 'text-[var(--text-faint)]'}`}>
-                                      Δ{delta > 0 ? '+' : ''}{Math.round(delta)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                {aScore !== undefined && (
-                                  <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                                    <div className="h-full rounded-full bg-blue-400 transition-all duration-500" style={{ width: `${aScore}%` }} />
-                                  </div>
-                                )}
-                                {bScore !== undefined && (
-                                  <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                                    <div className="h-full rounded-full bg-purple-400 transition-all duration-500" style={{ width: `${bScore}%` }} />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                          <CompareBarRow
+                            key={factor}
+                            factor={factor}
+                            label={info.label}
+                            scoreA={aScore}
+                            scoreB={bScore}
+                            delta={delta}
+                            highlighted={isTopDelta}
+                            showMedallion
+                          />
                         )
                       })}
                     </div>
@@ -1468,11 +1456,15 @@ export default function DashboardClient() {
                                   const aFacet = profileA.scores.facets?.[code]
                                   const bFacet = profileB?.scores.facets?.[code]
                                   return (
-                                    <div key={code} className="flex items-center gap-3 text-xs py-0.5">
-                                      <span className="flex-1 text-[var(--text-soft)] truncate">{name}</span>
-                                      {aFacet && <span className="w-10 text-right text-blue-600 font-medium tabular-nums">{Math.round(aFacet.pct)}%</span>}
-                                      {bFacet && <span className="w-10 text-right text-purple-600 font-medium tabular-nums">{Math.round(bFacet.pct)}%</span>}
-                                    </div>
+                                    <CompareBarRow
+                                      key={code}
+                                      factor={factor}
+                                      code={code}
+                                      label={name}
+                                      scoreA={aFacet?.pct}
+                                      scoreB={bFacet?.pct}
+                                      compact
+                                    />
                                   )
                                 })}
                               </div>

@@ -28,12 +28,60 @@ export const DOMAIN_LABELS: Record<Factor, { label: string; english: string; sub
 }
 
 // Domain color tokens — hues: O=210, C=38, E=158, A=268, N=348
-export const DOMAIN_COLORS: Record<Factor, { barColor: string; chipBg: string; chipText: string; hue: string }> = {
-  O: { barColor: 'hsl(210,55%,52%)', chipBg: 'hsl(210,60%,95%)', chipText: 'hsl(210,50%,36%)', hue: '210' },
-  C: { barColor: 'hsl(38,60%,50%)',  chipBg: 'hsl(38,70%,94%)',  chipText: 'hsl(38,55%,34%)',  hue: '38'  },
-  E: { barColor: 'hsl(158,50%,42%)', chipBg: 'hsl(158,60%,93%)', chipText: 'hsl(158,45%,30%)', hue: '158' },
-  A: { barColor: 'hsl(268,45%,55%)', chipBg: 'hsl(268,60%,95%)', chipText: 'hsl(268,40%,38%)', hue: '268' },
-  N: { barColor: 'hsl(348,52%,52%)', chipBg: 'hsl(348,60%,95%)', chipText: 'hsl(348,45%,36%)', hue: '348' },
+export const DOMAIN_COLORS: Record<Factor, {
+  barColor: string
+  chipBg: string
+  chipText: string
+  hue: string
+  compareStrong: string
+  compareSoft: string
+  compareTrack: string
+}> = {
+  O: {
+    barColor: 'hsl(210,55%,52%)',
+    chipBg: 'hsl(210,60%,95%)',
+    chipText: 'hsl(210,50%,36%)',
+    hue: '210',
+    compareStrong: 'hsl(210,62%,49%)',
+    compareSoft: 'hsl(210,48%,72%)',
+    compareTrack: 'hsl(210,34%,92%)',
+  },
+  C: {
+    barColor: 'hsl(38,60%,50%)',
+    chipBg: 'hsl(38,70%,94%)',
+    chipText: 'hsl(38,55%,34%)',
+    hue: '38',
+    compareStrong: 'hsl(38,68%,48%)',
+    compareSoft: 'hsl(38,58%,73%)',
+    compareTrack: 'hsl(38,40%,91%)',
+  },
+  E: {
+    barColor: 'hsl(158,50%,42%)',
+    chipBg: 'hsl(158,60%,93%)',
+    chipText: 'hsl(158,45%,30%)',
+    hue: '158',
+    compareStrong: 'hsl(158,56%,39%)',
+    compareSoft: 'hsl(158,42%,69%)',
+    compareTrack: 'hsl(158,28%,90%)',
+  },
+  A: {
+    barColor: 'hsl(268,45%,55%)',
+    chipBg: 'hsl(268,60%,95%)',
+    chipText: 'hsl(268,40%,38%)',
+    hue: '268',
+    compareStrong: 'hsl(268,51%,53%)',
+    compareSoft: 'hsl(268,42%,74%)',
+    compareTrack: 'hsl(268,30%,92%)',
+  },
+  N: {
+    barColor: 'hsl(348,52%,52%)',
+    chipBg: 'hsl(348,60%,95%)',
+    chipText: 'hsl(348,45%,36%)',
+    hue: '348',
+    compareStrong: 'hsl(348,60%,50%)',
+    compareSoft: 'hsl(348,48%,74%)',
+    compareTrack: 'hsl(348,32%,92%)',
+  },
 }
 
 const DASHBOARD_STRIP_DOMINANT_WIDTH = 72
